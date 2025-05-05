@@ -1,10 +1,23 @@
 const connection = require("../config/databases");
 
-class Model_Kategori {
+class Model_Feedback {
   static getAll() {
     return new Promise((resolve, reject) => {
       connection.query(
-        "SELECT * FROM kategori ORDER BY id_kategori DESC",
+        "SELECT f.*, p.id_pelanggan FROM feedback f JOIN pemesanan p ON f.id_pemesanan = p.id_pemesanan ORDER BY f.id_feedback DESC",
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows);
+        }
+      );
+    });
+  }
+
+  static async getByPemesanan(idPemesanan) {
+    return new Promise((resolve, reject) => {
+      connection.query(
+        "SELECT * FROM feedback WHERE id_pemesanan = ? ORDER BY id_feedback DESC",
+        [idPemesanan],
         (err, rows) => {
           if (err) reject(err);
           else resolve(rows);
@@ -15,7 +28,7 @@ class Model_Kategori {
 
   static async store(Data) {
     return new Promise((resolve, reject) => {
-      connection.query("INSERT INTO kategori SET ?", Data, (err, result) => {
+      connection.query("INSERT INTO feedback SET ?", Data, (err, result) => {
         if (err) reject(err);
         else resolve(result);
       });
@@ -25,7 +38,7 @@ class Model_Kategori {
   static async getId(id) {
     return new Promise((resolve, reject) => {
       connection.query(
-        "SELECT * FROM kategori WHERE id_kategori = ?",
+        "SELECT * FROM feedback WHERE id_feedback = ?",
         [id],
         (err, rows) => {
           if (err) reject(err);
@@ -38,7 +51,7 @@ class Model_Kategori {
   static async update(id, Data) {
     return new Promise((resolve, reject) => {
       connection.query(
-        "UPDATE kategori SET ? WHERE id_kategori = ?",
+        "UPDATE feedback SET ? WHERE id_feedback = ?",
         [Data, id],
         (err, result) => {
           if (err) reject(err);
@@ -51,7 +64,7 @@ class Model_Kategori {
   static async delete(id) {
     return new Promise((resolve, reject) => {
       connection.query(
-        "DELETE FROM kategori WHERE id_kategori = ?",
+        "DELETE FROM feedback WHERE id_feedback = ?",
         [id],
         (err, result) => {
           if (err) reject(err);
@@ -62,4 +75,4 @@ class Model_Kategori {
   }
 }
 
-module.exports = Model_Kategori;
+module.exports = Model_Feedback; 

@@ -4,26 +4,32 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 
+const cors = require('cors');
+
 var dotenv = require('dotenv');
 dotenv.config();
 
 var session= require('express-session');
-
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
-var kategoriRouter = require('./routes/kategori');
-var produkRouter = require('./routes/produk');
 var registrasiRouter = require('./routes/auth/register');
 var loginRouter = require('./routes/auth/login');
-
+var unitRouter = require('./routes/unit');
+var pelangganRouter = require('./routes/pelanggan');
+var operatorRouter = require('./routes/operator');
+var pesananRouter = require('./routes/pesanan');
+var pembayaranRouter = require('./routes/pembayaran');
+var buktiTransferRouter = require('./routes/bukti_transfer');
+var feedbackRouter = require('./routes/feedback');
+var logTransaksiRouter = require('./routes/log_transaksi');
 var app = express();
+const { onlyDomain } = require('./config/middleware/corsOptions');
 
-
+app.use(cors(onlyDomain));
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
 app.use('/static', express.static(path.join(__dirname, 'public/images')))
-
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -41,11 +47,16 @@ app.use(session({
 }))
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
-app.use('/API/kategori', kategoriRouter);
-app.use('/API/produk', produkRouter);
 app.use('/API/register', registrasiRouter);
 app.use('/API/login', loginRouter);
-
+app.use('/API/unit', unitRouter);
+app.use('/API/pelanggan', pelangganRouter);
+app.use('/API/operator', operatorRouter);
+app.use('/API/pesanan', pesananRouter);
+app.use('/API/pembayaran', pembayaranRouter);
+app.use('/API/bukti-transfer', buktiTransferRouter);
+app.use('/API/feedback', feedbackRouter);
+app.use('/API/log-transaksi', logTransaksiRouter);
 // Tambahkan route untuk halaman login dan register
 app.use('/login', loginRouter);
 app.use('/register', registrasiRouter);

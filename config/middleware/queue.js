@@ -52,37 +52,5 @@ const createQueue = (name, config) => {
   }
 };
 
-// Buat queue dengan fallback support
-const kategoriQueue = createQueue("kategoriQueue", redisConfig);
-const produkQueue = createQueue("produkQueue", redisConfig);
-
-// Error handling untuk queues
-if (enableQueue) {
-  kategoriQueue.on('error', (error) => {
-    console.error('Kategori Queue Error:', error);
-  });
-
-  produkQueue.on('error', (error) => {
-    console.error('Produk Queue Error:', error);
-  });
-}
-
-// Log queue status
-const logQueueStatus = async (queue, name) => {
-  try {
-    const [waiting, active, failed] = await Promise.all([
-      queue.getWaitingCount(),
-      queue.getActiveCount(),
-      queue.getFailedCount()
-    ]);
-    console.log(`${name} Queue Status:`, { waiting, active, failed });
-  } catch (error) {
-    console.error(`Error getting ${name} queue status:`, error);
-  }
-};
-
-// Log initial status
-logQueueStatus(kategoriQueue, 'Kategori');
-logQueueStatus(produkQueue, 'Produk');
-
-module.exports = { kategoriQueue, produkQueue };
+// Create empty module exports
+module.exports = {};

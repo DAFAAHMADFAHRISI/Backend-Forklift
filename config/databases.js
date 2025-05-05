@@ -3,7 +3,7 @@ let connection = mysql.createConnection({
     host: 'localhost',
     user: 'root',
     password: '',
-    database: 'semp4'
+    database: 'db_forklif'
 });
 connection.connect(function(error){
     if(!!error){
