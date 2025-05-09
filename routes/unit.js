@@ -4,7 +4,8 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-//done
+const { verifyToken, adminOnly, userOnly } = require('../middleware/authMiddleware');
+
 // Konfigurasi upload gambar
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, 'public/images'),
@@ -25,25 +26,24 @@ const upload = multer({
   limits: { fileSize: 2 * 1024 * 1024 } // 2MB
 });
 
-// GET - Mendapatkan semua unit
+// Public route - Semua orang bisa lihat unit yang tersedia
 router.get('/', async (req, res) => {
-  try {
-    const units = await Model_Unit.getAll();
-    res.status(200).json({
-      status: true,
-      message: 'Data Unit berhasil diambil',
-      data: units
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: false,
-      message: 'Gagal mengambil data unit',
-      error: error.message
-    });
-  }
+    try {
+        const units = await Model_Unit.getAll();
+        res.json({
+            status: true,
+            message: 'List semua unit forklift',
+            data: units
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: false,
+            message: error.message
+        });
+    }
 });
 
-// GET - Mendapatkan unit yang tersedia
+// GET - Mendapatkan unit yang tersedia (untuk user)
 router.get('/available', async (req, res) => {
   try {
     const units = await Model_Unit.getAvailable();
@@ -88,152 +88,176 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST - Menambahkan unit baru
-router.post('/store', upload.single('gambar'), async (req, res) => {
-  try {
-    const { nama_unit, kapasitas, status } = req.body;
-    
-    const data = {
-      nama_unit,
-      kapasitas,
-      status: status || 'tersedia',
-      gambar: req.file ? req.file.filename : null
-    };
-    
-    await Model_Unit.store(data);
-    res.status(201).json({
-      status: true,
-      message: 'Unit berhasil ditambahkan'
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: false,
-      message: 'Gagal menambahkan unit',
-      error: error.message
-    });
-  }
-});
-
-// PATCH - Mengupdate unit
-router.patch('/update/:id', upload.single('gambar'), async (req, res) => {
-  try {
-    const id = req.params.id;
-    const { nama_unit, kapasitas, status } = req.body;
-    
-    // Cek apakah unit ada
-    const unitData = await Model_Unit.getId(id);
-    if (!unitData || unitData.length === 0) {
-      return res.status(404).json({
-        status: false,
-        message: 'Unit tidak ditemukan'
-      });
-    }
-    
-    const oldUnit = unitData[0];
-    
-    // Data untuk update
-    const data = {};
-    if (nama_unit) data.nama_unit = nama_unit;
-    if (kapasitas) data.kapasitas = kapasitas;
-    if (status) data.status = status;
-    
-    // Update gambar jika ada
-    if (req.file) {
-      data.gambar = req.file.filename;
-      
-      // Hapus gambar lama jika ada
-      if (oldUnit.gambar) {
-        const oldFilePath = path.join(__dirname, '../public/images/', oldUnit.gambar);
-        if (fs.existsSync(oldFilePath)) {
-          fs.unlinkSync(oldFilePath);
+// Protected route - Hanya admin yang bisa tambah unit
+router.post('/store', verifyToken, adminOnly, upload.single('gambar'), async (req, res) => {
+    try {
+        // Validasi harga_per_jam
+        if (req.body.harga_per_jam) {
+            const harga = parseFloat(req.body.harga_per_jam);
+            if (isNaN(harga) || harga < 0) {
+                return res.status(400).json({
+                    status: false,
+                    message: 'Harga per jam harus berupa angka positif'
+                });
+            }
         }
-      }
+
+        // Validasi kapasitas
+        const validKapasitas = ['2.5', '3', '5', '7', '10'];
+        if (!validKapasitas.includes(req.body.kapasitas)) {
+            return res.status(400).json({
+                status: false,
+                message: 'Kapasitas harus salah satu dari: 2.5, 3, 5, 7, 10'
+            });
+        }
+
+        // req.file untuk gambar, req.body untuk data lain
+        const dataUnit = {
+            ...req.body,
+            gambar: req.file ? req.file.filename : null,
+            harga_per_jam: req.body.harga_per_jam || 300000.00,
+            status: 'tersedia' // Default status untuk unit baru
+        };
+        const result = await Model_Unit.store(dataUnit);
+        res.json({
+            status: true,
+            message: 'Berhasil menambah unit forklift',
+            data: result
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: false,
+            message: error.message
+        });
     }
-    
-    await Model_Unit.update(id, data);
-    res.status(200).json({
-      status: true,
-      message: 'Unit berhasil diperbarui'
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: false,
-      message: 'Gagal memperbarui unit',
-      error: error.message
-    });
-  }
 });
 
-// PATCH - Update status unit
-router.patch('/status/:id', async (req, res) => {
-  try {
-    const id = req.params.id;
-    const { status } = req.body;
-    
-    if (!status) {
-      return res.status(400).json({
-        status: false,
-        message: 'Status diperlukan'
-      });
+// Protected route - Hanya admin yang bisa update unit
+router.put('/:id', verifyToken, adminOnly, async (req, res) => {
+    try {
+        // Validasi harga_per_jam
+        if (req.body.harga_per_jam) {
+            const harga = parseFloat(req.body.harga_per_jam);
+            if (isNaN(harga) || harga < 0) {
+                return res.status(400).json({
+                    status: false,
+                    message: 'Harga per jam harus berupa angka positif'
+                });
+            }
+        }
+
+        // Validasi kapasitas
+        if (req.body.kapasitas) {
+            const validKapasitas = ['2.5', '3', '5', '7', '10'];
+            if (!validKapasitas.includes(req.body.kapasitas)) {
+                return res.status(400).json({
+                    status: false,
+                    message: 'Kapasitas harus salah satu dari: 2.5, 3, 5, 7, 10'
+                });
+            }
+        }
+
+        // Validasi status
+        if (req.body.status) {
+            const validStatus = ['tersedia', 'disewa'];
+            if (!validStatus.includes(req.body.status)) {
+                return res.status(400).json({
+                    status: false,
+                    message: 'Status harus salah satu dari: tersedia, disewa'
+                });
+            }
+        }
+
+        const result = await Model_Unit.update(req.params.id, req.body);
+        res.json({
+            status: true,
+            message: 'Berhasil mengupdate unit forklift',
+            data: result
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: false,
+            message: error.message
+        });
     }
-    
-    // Cek apakah unit ada
-    const unitData = await Model_Unit.getId(id);
-    if (!unitData || unitData.length === 0) {
-      return res.status(404).json({
-        status: false,
-        message: 'Unit tidak ditemukan'
-      });
-    }
-    
-    await Model_Unit.updateStatus(id, status);
-    res.status(200).json({
-      status: true,
-      message: 'Status unit berhasil diperbarui'
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: false,
-      message: 'Gagal memperbarui status unit',
-      error: error.message
-    });
-  }
 });
 
-// DELETE - Menghapus unit
-router.delete('/delete/:id', async (req, res) => {
-  try {
-    const id = req.params.id;
-    
-    // Cek apakah unit ada
-    const unitData = await Model_Unit.getId(id);
-    if (!unitData || unitData.length === 0) {
-      return res.status(404).json({
-        status: false,
-        message: 'Unit tidak ditemukan'
-      });
+// Protected route - Hanya admin yang bisa hapus unit
+router.delete('/:id', verifyToken, adminOnly, async (req, res) => {
+    try {
+        // Cek apakah unit sedang disewa
+        const unit = await Model_Unit.getId(req.params.id);
+        if (unit && unit[0].status === 'disewa') {
+            return res.status(400).json({
+                status: false,
+                message: 'Tidak dapat menghapus unit yang sedang disewa'
+            });
+        }
+
+        const result = await Model_Unit.delete(req.params.id);
+        res.json({
+            status: true,
+            message: 'Berhasil menghapus unit forklift',
+            data: result
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: false,
+            message: error.message
+        });
     }
-    
-    // Hapus gambar jika ada
-    if (unitData[0].gambar) {
-      const filePath = path.join(__dirname, '../public/images/', unitData[0].gambar);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
+});
+
+// Edit unit (update data dan gambar)
+router.put('/edit/:id', verifyToken, adminOnly, upload.single('gambar'), async (req, res) => {
+    try {
+        // Validasi harga_per_jam
+        if (req.body.harga_per_jam) {
+            const harga = parseFloat(req.body.harga_per_jam);
+            if (isNaN(harga) || harga < 0) {
+                return res.status(400).json({
+                    status: false,
+                    message: 'Harga per jam harus berupa angka positif'
+                });
+            }
+        }
+
+        // Validasi kapasitas
+        if (req.body.kapasitas) {
+            const validKapasitas = ['2.5', '3', '5', '7', '10'];
+            if (!validKapasitas.includes(req.body.kapasitas)) {
+                return res.status(400).json({
+                    status: false,
+                    message: 'Kapasitas harus salah satu dari: 2.5, 3, 5, 7, 10'
+                });
+            }
+        }
+
+        // Siapkan data yang akan diupdate
+        const dataUpdate = { ...req.body };
+        if (req.file) {
+            // Hapus gambar lama jika ada
+            const oldUnit = await Model_Unit.getId(req.params.id);
+            if (oldUnit && oldUnit[0].gambar) {
+                const oldImagePath = path.join('public/images', oldUnit[0].gambar);
+                if (fs.existsSync(oldImagePath)) {
+                    fs.unlinkSync(oldImagePath);
+                }
+            }
+            dataUpdate.gambar = req.file.filename;
+        }
+        const result = await Model_Unit.update(req.params.id, dataUpdate);
+        res.json({
+            status: true,
+            message: 'Berhasil mengupdate unit forklift',
+            data: result
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: false,
+            message: error.message
+        });
     }
-    
-    await Model_Unit.delete(id);
-    res.status(200).json({
-      status: true,
-      message: 'Unit berhasil dihapus'
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: false,
-      message: 'Gagal menghapus unit',
-      error: error.message
-    });
-  }
 });
 
 module.exports = router; 

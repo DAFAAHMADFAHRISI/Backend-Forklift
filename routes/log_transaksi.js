@@ -1,6 +1,7 @@
 const express = require('express');
 const Model_LogTransaksi = require('../model/Model_LogTransaksi');
 const router = express.Router();
+const { verifyToken, adminOnly, userOnly } = require('../middleware/authMiddleware');
 
 // GET - Mendapatkan semua log transaksi
 router.get('/', async (req, res) => {
@@ -127,6 +128,31 @@ router.delete('/delete/:id', async (req, res) => {
       error: error.message
     });
   }
+});
+
+// Example route for admin-only access
+router.get('/admin/users', verifyToken, adminOnly, (req, res) => {
+    // Handle admin-only user management
+});
+
+router.get('/admin/units', verifyToken, adminOnly, (req, res) => {
+    // Handle admin-only unit management
+});
+
+router.get('/admin/operators', verifyToken, adminOnly, (req, res) => {
+    // Handle admin-only operator management
+});
+
+router.get('/admin/pesanan', verifyToken, adminOnly, (req, res) => {
+    // Handle admin-only order management
+});
+
+router.get('/admin/pembayaran', verifyToken, adminOnly, (req, res) => {
+    // Handle admin-only payment management
+});
+
+router.get('/admin/transaksi', verifyToken, adminOnly, (req, res) => {
+    // Handle admin-only transaction management
 });
 
 module.exports = router; 

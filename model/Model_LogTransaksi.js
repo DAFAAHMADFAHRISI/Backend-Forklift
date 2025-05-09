@@ -1,63 +1,91 @@
 const connection = require("../config/databases");
 
 class Model_LogTransaksi {
-  static getAll() {
+  static async getAll() {
     return new Promise((resolve, reject) => {
-      connection.query(
-        "SELECT * FROM log_transaksi ORDER BY id_log DESC",
-        (err, rows) => {
-          if (err) reject(err);
-          else resolve(rows);
+      connection.query(`
+        SELECT lt.*, p.id_user 
+        FROM log_transaksi lt
+        JOIN pemesanan p ON lt.id_pemesanan = p.id_pemesanan
+        ORDER BY lt.id_log DESC
+      `, (err, rows) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(rows);
         }
-      );
+      });
     });
   }
 
-  static async getByPemesanan(idPemesanan) {
+  static async getByUserId(id_user) {
     return new Promise((resolve, reject) => {
-      connection.query(
-        "SELECT * FROM log_transaksi WHERE id_pemesanan = ? ORDER BY id_log DESC",
-        [idPemesanan],
-        (err, rows) => {
-          if (err) reject(err);
-          else resolve(rows);
+      connection.query(`
+        SELECT lt.* 
+        FROM log_transaksi lt
+        JOIN pemesanan p ON lt.id_pemesanan = p.id_pemesanan
+        WHERE p.id_user = ?
+        ORDER BY lt.id_log DESC
+      `, [id_user], (err, rows) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(rows);
         }
-      );
-    });
-  }
-
-  static async store(Data) {
-    return new Promise((resolve, reject) => {
-      connection.query("INSERT INTO log_transaksi SET ?", Data, (err, result) => {
-        if (err) reject(err);
-        else resolve(result);
       });
     });
   }
 
   static async getId(id) {
     return new Promise((resolve, reject) => {
-      connection.query(
-        "SELECT * FROM log_transaksi WHERE id_log = ?",
-        [id],
-        (err, rows) => {
-          if (err) reject(err);
-          else resolve(rows);
+      connection.query(`
+        SELECT lt.*, p.id_user 
+        FROM log_transaksi lt
+        JOIN pemesanan p ON lt.id_pemesanan = p.id_pemesanan
+        WHERE lt.id_log = ?
+      `, [id], (err, rows) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(rows[0]);
         }
-      );
+      });
     });
   }
 
-  static async delete(id) {
+  static async Store(data) {
     return new Promise((resolve, reject) => {
-      connection.query(
-        "DELETE FROM log_transaksi WHERE id_log = ?",
-        [id],
-        (err, result) => {
-          if (err) reject(err);
-          else resolve(result);
+      connection.query('INSERT INTO log_transaksi SET ?', data, (err, result) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(result);
         }
-      );
+      });
+    });
+  }
+
+  static async Update(id, data) {
+    return new Promise((resolve, reject) => {
+      connection.query('UPDATE log_transaksi SET ? WHERE id_log = ?', [data, id], (err, result) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(result);
+        }
+      });
+    });
+  }
+
+  static async Delete(id) {
+    return new Promise((resolve, reject) => {
+      connection.query('DELETE FROM log_transaksi WHERE id_log = ?', [id], (err, result) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(result);
+        }
+      });
     });
   }
 }

@@ -1,80 +1,102 @@
+require('dotenv').config();
+console.log('DEBUG JWT_SECRET:', process.env.JWT_SECRET);
 var createError = require('http-errors');
 var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
-
 const cors = require('cors');
 
-var dotenv = require('dotenv');
-dotenv.config();
+var session = require('express-session');
+const MemoryStore = require('express-session').MemoryStore;
 
-var session= require('express-session');
+// Import all routes
 var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
-var registrasiRouter = require('./routes/auth/register');
 var loginRouter = require('./routes/auth/login');
+var registrasiRouter = require('./routes/auth/register');
+var adminRouter = require('./routes/admin');
+var userRouter = require('./routes/user');
 var unitRouter = require('./routes/unit');
-var pelangganRouter = require('./routes/pelanggan');
-var operatorRouter = require('./routes/operator');
 var pesananRouter = require('./routes/pesanan');
 var pembayaranRouter = require('./routes/pembayaran');
-var buktiTransferRouter = require('./routes/bukti_transfer');
+var pelangganRouter = require('./routes/pelanggan');
 var feedbackRouter = require('./routes/feedback');
+var buktiTransferRouter = require('./routes/bukti_transfer');
+var operatorRouter = require('./routes/operator');
 var logTransaksiRouter = require('./routes/log_transaksi');
+
 var app = express();
-const { onlyDomain } = require('./config/middleware/corsOptions');
 
-app.use(cors(onlyDomain));
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'ejs');
-
-app.use('/static', express.static(path.join(__dirname, 'public/images')))
+// Middleware
+app.use(cors());
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/static', express.static(path.join(__dirname, 'public/images')));
 
+// View engine setup
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'ejs');
+
+// Session setup
 app.use(session({
-  cookie: {
-    maxAge: 6000
-  },
-  store: new session.MemoryStore,
-  saveUninitialized: true,
-  resave: 'true',
-  secret: 'secret'
-}))
-app.use('/', indexRouter);
-app.use('/users', usersRouter);
-app.use('/API/register', registrasiRouter);
-app.use('/API/login', loginRouter);
-app.use('/API/unit', unitRouter);
-app.use('/API/pelanggan', pelangganRouter);
-app.use('/API/operator', operatorRouter);
-app.use('/API/pesanan', pesananRouter);
-app.use('/API/pembayaran', pembayaranRouter);
-app.use('/API/bukti-transfer', buktiTransferRouter);
-app.use('/API/feedback', feedbackRouter);
-app.use('/API/log-transaksi', logTransaksiRouter);
-// Tambahkan route untuk halaman login dan register
-app.use('/login', loginRouter);
-app.use('/register', registrasiRouter);
+    cookie: {
+        maxAge: 6000
+    },
+    store: new MemoryStore(),
+    saveUninitialized: true,
+    resave: 'true',
+    secret: 'secret'
+}));
 
-//up
-app.use(function(req, res, next) {
-  next(createError(404));
+// Case-insensitive route handling
+app.use((req, res, next) => {
+    // Convert URL to lowercase
+    req.url = req.url.toLowerCase();
+    next();
 });
 
-// error handler
-app.use(function(err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
+// Web routes
+app.use('/', indexRouter);
 
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
+// API routes
+app.use('/api/auth/login', loginRouter);
+app.use('/api/auth/register', registrasiRouter);
+app.use('/api/admin', adminRouter);
+app.use('/api/user', userRouter);
+app.use('/api/unit', unitRouter);
+app.use('/api/pesanan', pesananRouter);
+app.use('/api/pembayaran', pembayaranRouter);
+app.use('/api/pelanggan', pelangganRouter);
+app.use('/api/feedback', feedbackRouter);
+app.use('/api/bukti-transfer', buktiTransferRouter);
+app.use('/api/operator', operatorRouter);
+app.use('/api/log-transaksi', logTransaksiRouter);
+
+// Error handling
+app.use(function(req, res, next) {
+    next(createError(404));
+});
+
+app.use(function(err, req, res, next) {
+    // Set locals, only providing error in development
+    res.locals.message = err.message;
+    res.locals.error = req.app.get('env') === 'development' ? err : {};
+
+    // Send JSON response for API routes
+    if (req.path.startsWith('/api/')) {
+        return res.status(err.status || 500).json({
+            status: false,
+            message: err.message,
+            error: process.env.NODE_ENV === 'development' ? err : {}
+        });
+    }
+
+    // Render error page for web routes
+    res.status(err.status || 500);
+    res.render('error');
 });
 
 module.exports = app;

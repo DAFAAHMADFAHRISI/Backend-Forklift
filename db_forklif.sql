@@ -1,17 +1,18 @@
 -- Database: db_forklif
 
--- Tabel pelanggan
-CREATE TABLE pelanggan (
-    id_pelanggan INT AUTO_INCREMENT PRIMARY KEY,
+-- Tabel user (sebelumnya pelanggan)
+CREATE TABLE user (
+    id_user INT AUTO_INCREMENT PRIMARY KEY,
     nama VARCHAR(100),
-    email VARCHAR(100),
+    email VARCHAR(100) UNIQUE NOT NULL,
     no_hp VARCHAR(20),
-    alamat TEXT
+    alamat TEXT,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    role ENUM('admin', 'user') DEFAULT 'user',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
-
-INSERT INTO pelanggan (nama, email, no_hp, alamat) VALUES
-('Andi Saputra', 'andi@email.com', '081234567890', 'Jl. Merdeka No. 12'),
-('Siti Aminah', 'siti@email.com', '082233445566', 'Jl. Kartini No. 45');
 
 -- Tabel unit_forklift
 CREATE TABLE unit_forklift (
@@ -19,11 +20,9 @@ CREATE TABLE unit_forklift (
     nama_unit VARCHAR(100),
     kapasitas ENUM('2.5', '3', '5', '7', '10'),
     gambar VARCHAR(255),
-    status ENUM('tersedia', 'disewa') DEFAULT 'tersedia'
+    status ENUM('tersedia', 'disewa') DEFAULT 'tersedia',
+    harga_per_jam DECIMAL(10,2) DEFAULT 300000.00
 );
-
--- Data unit dikosongkan dulu
--- INSERT INTO unit_forklift (...) VALUES (...);
 
 -- Tabel operator
 CREATE TABLE operator (
@@ -33,14 +32,10 @@ CREATE TABLE operator (
     status ENUM('tersedia', 'dipesan', 'tidak tersedia') DEFAULT 'tersedia'
 );
 
-INSERT INTO operator (nama_operator, no_hp, status) VALUES
-('Budi Santoso', '081122334455', 'tersedia'),
-('Rina Marlina', '085566778899', 'tidak tersedia');
-
 -- Tabel pemesanan
 CREATE TABLE pemesanan (
     id_pemesanan INT AUTO_INCREMENT PRIMARY KEY,
-    id_pelanggan INT,
+    id_user INT,
     id_unit INT,
     id_operator INT,
     tanggal_mulai DATE,
@@ -48,7 +43,7 @@ CREATE TABLE pemesanan (
     lokasi_pengiriman TEXT,
     nama_perusahaan VARCHAR(100),
     status ENUM('menunggu pembayaran', 'menunggu konfirmasi', 'dikirim', 'selesai') DEFAULT 'menunggu pembayaran',
-    FOREIGN KEY (id_pelanggan) REFERENCES pelanggan(id_pelanggan),
+    FOREIGN KEY (id_user) REFERENCES user(id_user),
     FOREIGN KEY (id_unit) REFERENCES unit_forklift(id_unit),
     FOREIGN KEY (id_operator) REFERENCES operator(id_operator)
 );
@@ -92,4 +87,4 @@ CREATE TABLE feedback (
     komentar TEXT,
     tanggal TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_pemesanan) REFERENCES pemesanan(id_pemesanan)
-); 
+);

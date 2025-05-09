@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken')
 class Model_Users {
     static async getAll() {
         return new Promise((resolve, reject) => {
-            connection.query('SELECT id, username, created_at FROM users ORDER BY id DESC', (err, rows) => {
+            connection.query('SELECT id_user, username, created_at FROM user ORDER BY id_user DESC', (err, rows) => {
                 if (err) {
                     reject(err)
                 } else {
@@ -17,7 +17,7 @@ class Model_Users {
 
     static async Store(Data) {
         return new Promise((resolve, reject) => {
-            connection.query('INSERT INTO users SET ?', Data, (err, rows) => {
+            connection.query('INSERT INTO user SET ?', Data, (err, rows) => {
                 if (err) {
                     reject(err)
                 } else {
@@ -29,7 +29,7 @@ class Model_Users {
 
     static async getId() {
         return new Promise((resolve, reject) => {
-            connection.query('SELECT id, username, created_at FROM users WHERE id = ?', (err, rows) => {
+            connection.query('SELECT id_user, username, created_at FROM user WHERE id_user = ?', (err, rows) => {
                 if (err) {
                     reject(err)
                 } else {
@@ -41,7 +41,7 @@ class Model_Users {
 
     static async Update(id, Data) {
         return new Promise((resolve, reject) => {
-            connection.query('UPDATE users SET ? WHERE id = ?', [Data, id], (err, rows) => {
+            connection.query('UPDATE user SET ? WHERE id_user = ?', [Data, id], (err, rows) => {
                 if (err) {
                     reject(err)
                 } else {
@@ -53,7 +53,7 @@ class Model_Users {
 
     static async Delete(id) {
         return new Promise((resolve, reject) => {
-            connection.query('DELETE FROM users WHERE id = ?', [id], (err, rows) => {
+            connection.query('DELETE FROM user WHERE id_user = ?', [id], (err, rows) => {
                 if (err) {
                     reject(err)
                 } else {
@@ -65,39 +65,44 @@ class Model_Users {
 
     static async getByUsername(username) {
         return new Promise((resolve, reject) => {
-            connection.query('SELECT * FROM users WHERE username = ?', [username], (err, rows) => {
+            connection.query('SELECT * FROM user WHERE username = ? OR email = ?', [username, username], (err, rows) => {
                 if (err) reject(err)
                 else resolve(rows[0])
             })
         })
     }
 
-    static async registerUser(username, password) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                const hashedPassword = await bcrypt.hash(password, 10)
-                connection.query(
-                    'INSERT INTO users (username, password) VALUES (?, ?)',
-                    [username, hashedPassword],
-                    (err, result) => {
-                        if (err) reject(err);
-                        else resolve(result);
-                    }
-                );
-            } catch (error) {
-                reject(error);
-            }
+    static async registerUser(userData) {
+        const { nama, email, username, password, no_hp, alamat } = userData;
+        
+        // Hash password
+        const hashedPassword = await bcrypt.hash(password, 10);
+        
+        const query = `
+            INSERT INTO user 
+            (nama, email, username, password, no_hp, alamat, role) 
+            VALUES (?, ?, ?, ?, ?, ?, 'user')
+        `;
+        
+        return new Promise((resolve, reject) => {
+            connection.query(query, [nama, email, username, hashedPassword, no_hp, alamat], (err, result) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(result);
+                }
+            });
         });
     }
 
     static async login(username, password) {
         return new Promise((resolve, reject) => {
-            const sql = 'SELECT * FROM users WHERE username = ?';
-            connection.query(sql, [username], async (err, results) => {
+            const sql = 'SELECT * FROM user WHERE username = ? OR email = ?';
+            connection.query(sql, [username, username], async (err, results) => {
                 if (err) return reject({ status: 500, message: 'Error pada server', error: err });
 
                 if (results.length === 0) {
-                    return reject({ status: 401, message: 'Username tidak ditemukan' });
+                    return reject({ status: 401, message: 'Username atau email tidak ditemukan' });
                 }
 
                 const user = results[0];
@@ -108,16 +113,32 @@ class Model_Users {
 
                 const token = jwt.sign(
                     {
-                        id: user.id,
+                        id_user: user.id_user,
                         username: user.username,
+                        nama: user.nama,
+                        email: user.email,
+                        role: user.role || 'user'
                     },
                     process.env.JWT_SECRET,
-                    { expiresIn: '1h' }
+                    { expiresIn: '7d' }
                 );
 
-                resolve({ token });
+                resolve({ 
+                    token,
+                    user: {
+                        id_user: user.id_user,
+                        nama: user.nama,
+                        username: user.username,
+                        email: user.email,
+                        role: user.role || 'user'
+                    }
+                });
             });
         });
+    }
+
+    static async verifyPassword(plainPassword, hashedPassword) {
+        return bcrypt.compare(plainPassword, hashedPassword);
     }
 }
 

@@ -1,8 +1,16 @@
-var express = require('express')
-var router = express.Router()
-var usersModel = require('../../model/Model_Users')
+const express = require('express')
+const router = express.Router()
+const bcrypt = require('bcryptjs')
+const jwt = require('jsonwebtoken')
+const db = require('../../config/databases')
 const rateLimit = require('express-rate-limit')
 
+// Force JWT_SECRET to be set in environment
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+    throw new Error('JWT_SECRET is not set in .env file!');
+}
+console.log('Using JWT secret:', JWT_SECRET ? 'Secret is set' : 'NOT SET!');
 
 const loginLimiter = rateLimit({
     windowMs: 7 * 60 * 1000, 
@@ -16,9 +24,6 @@ const loginLimiter = rateLimit({
     skipSuccessfulRequests: true 
 })
 
-
-// github
-
 // Route untuk menampilkan halaman login (GET)
 router.get('/', (req, res) => {
     res.render('login', { 
@@ -29,7 +34,7 @@ router.get('/', (req, res) => {
 });
 
 // Route untuk login API dan web form (POST)
-router.post('/', loginLimiter, async (req, res) => {
+router.post('/', loginLimiter, (req, res) => {
     const { username, password } = req.body;
     
     // Cek apakah request berasal dari Postman/API client
@@ -38,56 +43,140 @@ router.post('/', loginLimiter, async (req, res) => {
                         req.xhr;
     
     // Validasi input
-    if (!username) {
+    if (!username || !password) {
+        const message = !username ? 'Username harus di isi' : 'Password harus di isi';
         if (isApiRequest) {
-            return res.status(400).json({ message: 'Username harus di isi' });
-        } else {
-            return res.render('login', { 
-                title: 'Login',
-                errorMessage: 'Username harus di isi'
+            return res.status(400).json({ 
+                status: false,
+                message 
             });
-        }
-    } else if (!password) {
-        if (isApiRequest) {
-            return res.status(400).json({ message: 'Password harus di isi' });
         } else {
             return res.render('login', { 
                 title: 'Login',
-                errorMessage: 'Password harus di isi'
+                errorMessage: message
             });
         }
     }
 
-    try {
-        const result = await usersModel.login(username, password);
-        
-        if (isApiRequest) {
-            // API response
-            return res.json({ 
-                status: true, 
-                message: 'Login berhasil', 
-                data: result 
-            });
-        } else {
-            // Web form response
-            req.session.user = { username, isLoggedIn: true };
-            return res.redirect('/?success=Login berhasil');
+    // Cari user berdasarkan username menggunakan callback
+    db.query('SELECT * FROM user WHERE username = ?', [username], (error, users) => {
+        if (error) {
+            console.error('Database error:', error);
+            if (isApiRequest) {
+                return res.status(500).json({ 
+                    status: false, 
+                    message: 'Terjadi kesalahan pada server'
+                });
+            } else {
+                return res.render('login', { 
+                    title: 'Login',
+                    errorMessage: 'Terjadi kesalahan pada server'
+                });
+            }
         }
-    } catch (error) {
-        if (isApiRequest) {
-            // API response
-            return res.status(error.status || 500).json({ 
-                status: false, 
-                message: error.message || 'Terjadi kesalahan pada server'
-            });
-        } else {
-            // Web form response
-            return res.render('login', { 
-                title: 'Login',
-                errorMessage: error.message || 'Username atau password salah'
-            });
+
+        if (users.length === 0) {
+            if (isApiRequest) {
+                return res.status(401).json({ 
+                    status: false,
+                    message: 'Username atau password salah'
+                });
+            } else {
+                return res.render('login', { 
+                    title: 'Login',
+                    errorMessage: 'Username atau password salah'
+                });
+            }
         }
-    }
+
+        const user = users[0];
+
+        // Verifikasi password
+        bcrypt.compare(password, user.password, (err, isValidPassword) => {
+            if (err) {
+                console.error('Password comparison error:', err);
+                if (isApiRequest) {
+                    return res.status(500).json({ 
+                        status: false, 
+                        message: 'Terjadi kesalahan pada server'
+                    });
+                } else {
+                    return res.render('login', { 
+                        title: 'Login',
+                        errorMessage: 'Terjadi kesalahan pada server'
+                    });
+                }
+            }
+
+            if (!isValidPassword) {
+                if (isApiRequest) {
+                    return res.status(401).json({ 
+                        status: false,
+                        message: 'Username atau password salah'
+                    });
+                } else {
+                    return res.render('login', { 
+                        title: 'Login',
+                        errorMessage: 'Username atau password salah'
+                    });
+                }
+            }
+
+            try {
+                // Generate JWT token
+                const token = jwt.sign(
+                    { 
+                        id_user: user.id_user,
+                        username: user.username,
+                        role: user.role
+                    },
+                    JWT_SECRET,
+                    { expiresIn: '24h' }
+                );
+
+                if (isApiRequest) {
+                    // API response
+                    return res.json({ 
+                        status: true, 
+                        message: 'Login berhasil',
+                        data: {
+                            token,
+                            user: {
+                                id_user: user.id_user,
+                                username: user.username,
+                                nama: user.nama,
+                                email: user.email,
+                                role: user.role
+                            }
+                        }
+                    });
+                } else {
+                    // Web form response
+                    req.session.user = { 
+                        id_user: user.id_user,
+                        username: user.username,
+                        nama: user.nama,
+                        role: user.role,
+                        isLoggedIn: true 
+                    };
+                    return res.redirect('/?success=Login berhasil');
+                }
+            } catch (error) {
+                console.error('JWT signing error:', error);
+                if (isApiRequest) {
+                    return res.status(500).json({ 
+                        status: false, 
+                        message: 'Terjadi kesalahan pada server'
+                    });
+                } else {
+                    return res.render('login', { 
+                        title: 'Login',
+                        errorMessage: 'Terjadi kesalahan pada server'
+                    });
+                }
+            }
+        });
+    });
 });
 
 module.exports = router

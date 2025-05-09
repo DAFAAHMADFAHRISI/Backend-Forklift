@@ -1,6 +1,7 @@
 const express = require('express');
 const Model_Feedback = require('../model/Model_Feedback');
 const router = express.Router();
+const { verifyToken, userOnly } = require('../middleware/authMiddleware');
 
 // GET - Mendapatkan semua feedback
 router.get('/', async (req, res) => {
@@ -68,7 +69,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST - Menambahkan feedback baru
-router.post('/store', async (req, res) => {
+router.post('/store', verifyToken, userOnly, async (req, res) => {
   try {
     const { id_pemesanan, rating, komentar } = req.body;
     

@@ -4,6 +4,7 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { verifyToken, userOnly } = require('../middleware/authMiddleware');
 
 // Konfigurasi upload bukti transfer
 const storage = multer.diskStorage({
@@ -91,7 +92,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST - Menambahkan bukti transfer baru
-router.post('/store', upload.fields([
+router.post('/store', verifyToken, userOnly, upload.fields([
   { name: 'file_bukti', maxCount: 1 },
   { name: 'gambar_bukti', maxCount: 1 }
 ]), async (req, res) => {

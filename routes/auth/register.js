@@ -13,7 +13,7 @@ router.get('/', (req, res) => {
 
 // Route untuk register API dan web form (POST)
 router.post('/', async (req, res) => {
-    const { username, password, email } = req.body;
+    const { nama, email, username, password, no_hp, alamat } = req.body;
     
     // Cek apakah request berasal dari Postman/API client
     const isApiRequest = req.get('User-Agent')?.includes('Postman') || 
@@ -21,22 +21,14 @@ router.post('/', async (req, res) => {
                         req.xhr;
     
     // Validasi input
-    if (!username) {
+    if (!username || !password || !email || !nama) {
+        const message = 'Semua field wajib harus diisi';
         if (isApiRequest) {
-            return res.status(400).json({ message: 'Username harus di isi' });
+            return res.status(400).json({ status: false, message });
         } else {
             return res.render('register', { 
                 title: 'Register',
-                errorMessage: 'Username harus di isi'
-            });
-        }
-    } else if (!password) {
-        if (isApiRequest) {
-            return res.status(400).json({ message: 'Password harus di isi' });
-        } else {
-            return res.render('register', { 
-                title: 'Register',
-                errorMessage: 'Password harus di isi'
+                errorMessage: message
             });
         }
     }
@@ -44,40 +36,40 @@ router.post('/', async (req, res) => {
     try {
         const existingUser = await usersModel.getByUsername(username);
         if (existingUser) {
+            const message = 'Username atau email sudah digunakan';
             if (isApiRequest) {
-                return res.status(400).json({ message: 'Username sudah digunakan' });
+                return res.status(400).json({ status: false, message });
             } else {
                 return res.render('register', { 
                     title: 'Register',
-                    errorMessage: 'Username sudah digunakan'
+                    errorMessage: message
                 });
             }
         }
 
-        await usersModel.registerUser(username, password);
+        await usersModel.registerUser({ nama, email, username, password, no_hp, alamat });
         
         if (isApiRequest) {
-            // API response
             return res.status(201).json({ 
                 status: true,
                 message: 'Register berhasil' 
             });
         } else {
-            // Web form response
             return res.redirect('/login?success=Pendaftaran berhasil, silakan login');
         }
     } catch (error) {
+        console.error('Register error:', error);
+        const message = 'Terjadi kesalahan saat mendaftar';
+        
         if (isApiRequest) {
-            // API response
             return res.status(500).json({ 
                 status: false,
-                message: error.message 
+                message: error.message || message
             });
         } else {
-            // Web form response
             return res.render('register', { 
                 title: 'Register',
-                errorMessage: error.message || 'Terjadi kesalahan saat mendaftar'
+                errorMessage: error.message || message
             });
         }
     }

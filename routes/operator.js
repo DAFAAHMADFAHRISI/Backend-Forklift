@@ -95,8 +95,6 @@ router.patch('/update/:id', async (req, res) => {
   try {
     const id = req.params.id;
     const { nama_operator, no_hp, status } = req.body;
-    
-    // Cek apakah operator ada
     const operatorData = await Model_Operator.getId(id);
     if (!operatorData || operatorData.length === 0) {
       return res.status(404).json({
@@ -104,13 +102,10 @@ router.patch('/update/:id', async (req, res) => {
         message: 'Operator tidak ditemukan'
       });
     }
-    
-    // Data untuk update
     const data = {};
     if (nama_operator) data.nama_operator = nama_operator;
     if (no_hp) data.no_hp = no_hp;
     if (status) data.status = status;
-    
     await Model_Operator.update(id, data);
     res.status(200).json({
       status: true,
@@ -130,15 +125,12 @@ router.patch('/status/:id', async (req, res) => {
   try {
     const id = req.params.id;
     const { status } = req.body;
-    
     if (!status) {
       return res.status(400).json({
         status: false,
         message: 'Status diperlukan'
       });
     }
-    
-    // Cek apakah operator ada
     const operatorData = await Model_Operator.getId(id);
     if (!operatorData || operatorData.length === 0) {
       return res.status(404).json({
@@ -146,8 +138,7 @@ router.patch('/status/:id', async (req, res) => {
         message: 'Operator tidak ditemukan'
       });
     }
-    
-    await Model_Operator.updateStatus(id, status);
+    await Model_Operator.update(id, { status });
     res.status(200).json({
       status: true,
       message: 'Status operator berhasil diperbarui'
@@ -165,8 +156,6 @@ router.patch('/status/:id', async (req, res) => {
 router.delete('/delete/:id', async (req, res) => {
   try {
     const id = req.params.id;
-    
-    // Cek apakah operator ada
     const operatorData = await Model_Operator.getId(id);
     if (!operatorData || operatorData.length === 0) {
       return res.status(404).json({
@@ -174,7 +163,6 @@ router.delete('/delete/:id', async (req, res) => {
         message: 'Operator tidak ditemukan'
       });
     }
-    
     await Model_Operator.delete(id);
     res.status(200).json({
       status: true,
@@ -184,6 +172,36 @@ router.delete('/delete/:id', async (req, res) => {
     res.status(500).json({
       status: false,
       message: 'Gagal menghapus operator',
+      error: error.message
+    });
+  }
+});
+
+// PUT - Edit operator (untuk konsistensi dengan /edit/:id)
+router.put('/edit/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { nama_operator, no_hp, status } = req.body;
+    const operatorData = await Model_Operator.getId(id);
+    if (!operatorData || operatorData.length === 0) {
+      return res.status(404).json({
+        status: false,
+        message: 'Operator tidak ditemukan'
+      });
+    }
+    const data = {};
+    if (nama_operator) data.nama_operator = nama_operator;
+    if (no_hp) data.no_hp = no_hp;
+    if (status) data.status = status;
+    await Model_Operator.update(id, data);
+    res.status(200).json({
+      status: true,
+      message: 'Operator berhasil diperbarui'
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: false,
+      message: 'Gagal memperbarui operator',
       error: error.message
     });
   }
