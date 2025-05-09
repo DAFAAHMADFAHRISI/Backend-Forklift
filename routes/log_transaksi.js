@@ -47,7 +47,7 @@ router.get('/:id', async (req, res) => {
     const id = req.params.id;
     const log = await Model_LogTransaksi.getId(id);
     
-    if (!log || log.length === 0) {
+    if (!log) {
       return res.status(404).json({
         status: false,
         message: 'Log transaksi tidak ditemukan'
@@ -57,7 +57,7 @@ router.get('/:id', async (req, res) => {
     res.status(200).json({
       status: true,
       message: 'Detail log transaksi berhasil diambil',
-      data: log[0]
+      data: log
     });
   } catch (error) {
     res.status(500).json({
