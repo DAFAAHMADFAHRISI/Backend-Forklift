@@ -15,7 +15,7 @@ router.get('/', async (req, res) => {
   } catch (error) {
     res.status(500).json({
       status: false,
-      message: 'Gagal mengambil data feedback',
+      messaete: 'Gagal mengambil data feedback',
       error: error.message
     });
   }
