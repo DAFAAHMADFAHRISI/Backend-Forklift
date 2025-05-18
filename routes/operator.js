@@ -43,18 +43,18 @@ router.get('/:id', async (req, res) => {
   try {
     const id = req.params.id;
     const operator = await Model_Operator.getId(id);
-    
-    if (!operator || operator.length === 0) {
+
+    if (!operator) {
       return res.status(404).json({
         status: false,
         message: 'Operator tidak ditemukan'
       });
     }
-    
+
     res.status(200).json({
       status: true,
       message: 'Detail operator berhasil diambil',
-      data: operator[0]
+      data: operator // <-- PENTING!
     });
   } catch (error) {
     res.status(500).json({
