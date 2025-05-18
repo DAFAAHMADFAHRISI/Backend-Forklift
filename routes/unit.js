@@ -260,4 +260,29 @@ router.put('/edit/:id', verifyToken, adminOnly, upload.single('gambar'), async (
     }
 });
 
+// PATCH - Update status unit
+router.patch('/status/:id', verifyToken, adminOnly, async (req, res) => {
+    try {
+        const { status } = req.body;
+        const validStatus = ['tersedia', 'disewa'];
+        if (!validStatus.includes(status)) {
+            return res.status(400).json({
+                status: false,
+                message: 'Status harus salah satu dari: tersedia, disewa'
+            });
+        }
+        const result = await Model_Unit.update(req.params.id, { status });
+        res.json({
+            status: true,
+            message: 'Berhasil mengupdate status unit forklift',
+            data: result
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: false,
+            message: error.message
+        });
+    }
+});
+
 module.exports = router; 
