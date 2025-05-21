@@ -1,9 +1,10 @@
 const express = require('express');
 const Model_Operator = require('../model/Model_Operator');
+const { verifyToken, adminOnly } = require('../middleware/authMiddleware');
 const router = express.Router();
-//done
-// GET - Mendapatkan semua operator
-router.get('/', async (req, res) => {
+
+// GET - Mendapatkan semua operator (semua user bisa akses)
+router.get('/', verifyToken, async (req, res) => {
   try {
     const operators = await Model_Operator.getAll();
     res.status(200).json({
@@ -20,8 +21,8 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET - Mendapatkan operator yang tersedia
-router.get('/available', async (req, res) => {
+// GET - Mendapatkan operator yang tersedia (semua user bisa akses)
+router.get('/available', verifyToken, async (req, res) => {
   try {
     const operators = await Model_Operator.getAvailable();
     res.status(200).json({
@@ -38,8 +39,8 @@ router.get('/available', async (req, res) => {
   }
 });
 
-// GET - Mendapatkan operator berdasarkan ID
-router.get('/:id', async (req, res) => {
+// GET - Mendapatkan operator berdasarkan ID (semua user bisa akses)
+router.get('/:id', verifyToken, async (req, res) => {
   try {
     const id = req.params.id;
     const operator = await Model_Operator.getId(id);
@@ -65,8 +66,8 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST - Menambahkan operator baru
-router.post('/store', async (req, res) => {
+// POST - Menambahkan operator baru (admin only)
+router.post('/store', verifyToken, adminOnly, async (req, res) => {
   try {
     const { nama_operator, no_hp, status } = req.body;
     
@@ -90,8 +91,8 @@ router.post('/store', async (req, res) => {
   }
 });
 
-// PATCH - Mengupdate operator
-router.patch('/update/:id', async (req, res) => {
+// PATCH - Mengupdate operator (admin only)
+router.patch('/update/:id', verifyToken, adminOnly, async (req, res) => {
   try {
     const id = req.params.id;
     const { nama_operator, no_hp, status } = req.body;
@@ -120,8 +121,8 @@ router.patch('/update/:id', async (req, res) => {
   }
 });
 
-// PATCH - Update status operator
-router.patch('/status/:id', async (req, res) => {
+// PATCH - Update status operator (admin only)
+router.patch('/status/:id', verifyToken, adminOnly, async (req, res) => {
   try {
     const id = req.params.id;
     const { status } = req.body;
@@ -152,8 +153,8 @@ router.patch('/status/:id', async (req, res) => {
   }
 });
 
-// DELETE - Menghapus operator
-router.delete('/delete/:id', async (req, res) => {
+// DELETE - Menghapus operator (admin only)
+router.delete('/delete/:id', verifyToken, adminOnly, async (req, res) => {
   try {
     const id = req.params.id;
     const operatorData = await Model_Operator.getId(id);
@@ -177,8 +178,8 @@ router.delete('/delete/:id', async (req, res) => {
   }
 });
 
-// PUT - Edit operator (untuk konsistensi dengan /edit/:id)
-router.put('/edit/:id', async (req, res) => {
+// PUT - Edit operator (admin only)
+router.put('/edit/:id', verifyToken, adminOnly, async (req, res) => {
   try {
     const id = req.params.id;
     const { nama_operator, no_hp, status } = req.body;
@@ -207,4 +208,4 @@ router.put('/edit/:id', async (req, res) => {
   }
 });
 
-module.exports = router; 
+module.exports = router;
