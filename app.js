@@ -1,7 +1,6 @@
-require('dotenv').config();
-console.log('DEBUG JWT_SECRET:', process.env.JWT_SECRET);
-var createError = require('http-errors');
-var express = require('express');
+const express = require('express');
+const createError = require('http-errors');
+const pemesananRouter = require('./routes/pemesanan');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
@@ -76,28 +75,22 @@ app.use('/api/bukti-transfer', buktiTransferRouter);
 app.use('/api/operator', operatorRouter);
 app.use('/api/log-transaksi', logTransaksiRouter);
 
-// Error handling
-app.use(function(req, res, next) {
+// Add routes
+app.use('/pemesanan', require('./routes/pemesanan'));
+
+// Error handler for 404
+app.use((req, res, next) => {
     next(createError(404));
 });
 
-app.use(function(err, req, res, next) {
-    // Set locals, only providing error in development
-    res.locals.message = err.message;
-    res.locals.error = req.app.get('env') === 'development' ? err : {};
-
-    // Send JSON response for API routes
-    if (req.path.startsWith('/api/')) {
-        return res.status(err.status || 500).json({
-            status: false,
-            message: err.message,
-            error: process.env.NODE_ENV === 'development' ? err : {}
-        });
-    }
-
-    // Render error page for web routes
+// Error handler
+app.use((err, req, res, next) => {
     res.status(err.status || 500);
-    res.render('error');
+    res.json({
+        status: false,
+        message: err.message,
+        error: process.env.NODE_ENV === 'development' ? err : {}
+    });
 });
 
 module.exports = app;

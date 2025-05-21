@@ -53,9 +53,14 @@ class Model_LogTransaksi {
     });
   }
 
-  static async Store(data) {
+  static async store(logData) {
     return new Promise((resolve, reject) => {
-      connection.query('INSERT INTO log_transaksi SET ?', data, (err, result) => {
+      connection.query('INSERT INTO log_transaksi SET ?', {
+        id_pemesanan: logData.id_pemesanan,
+        status_transaksi: logData.status_transaksi,
+        keterangan: logData.keterangan,
+        waktu: logData.waktu
+      }, (err, result) => {
         if (err) {
           reject(err);
         } else {
@@ -88,6 +93,9 @@ class Model_LogTransaksi {
       });
     });
   }
+
+  
+  
 }
 
-module.exports = Model_LogTransaksi; 
+module.exports = Model_LogTransaksi;
