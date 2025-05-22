@@ -2,8 +2,9 @@ const express = require('express');
 const router = express.Router();
 const Model_Pemesanan = require('../model/Model_Pemesanan');
 const { createLogTransaksi } = require('../helpers/logHelper');
+const { verifyToken, adminOnly } = require('../middleware/authMiddleware');
 
-router.put('/update-status/:id', async (req, res) => {
+router.put('/update-status/:id', verifyToken, adminOnly, async (req, res) => {
     try {
         const { status } = req.body;
         const idPemesanan = req.params.id;
