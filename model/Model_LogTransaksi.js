@@ -38,18 +38,17 @@ class Model_LogTransaksi {
 
   static async getId(id) {
     return new Promise((resolve, reject) => {
-      connection.query(`
-        SELECT lt.*, p.id_user 
-        FROM log_transaksi lt
-        JOIN pemesanan p ON lt.id_pemesanan = p.id_pemesanan
-        WHERE lt.id_log = ?
-      `, [id], (err, rows) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(rows[0]);
+      connection.query(
+        `SELECT * FROM log_transaksi WHERE id_log = ?`,
+        [id],
+        (err, rows) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(rows[0]);
+          }
         }
-      });
+      );
     });
   }
 

@@ -74,19 +74,27 @@ router.get('/:id', verifyToken, async (req, res) => {
 
 // Protected route - Hanya admin yang bisa update status pesanan
 router.put('/:id/status', verifyToken, adminOnly, async (req, res) => {
-    try {
-        const result = await Model_Pesanan.updateStatus(req.params.id, req.body.status);
-        res.json({
-            status: true,
-            message: 'Status pesanan berhasil diupdate',
-            data: result
-        });
-    } catch (error) {
-        res.status(500).json({
-            status: false,
-            message: error.message
-        });
-    }
+  try {
+      const allowedStatus = ['menunggu pembayaran', 'menunggu konfirmasi', 'dikirim', 'selesai'];
+      const { status } = req.body;
+      if (!allowedStatus.includes(status)) {
+          return res.status(400).json({
+              status: false,
+              message: 'Status tidak valid'
+          });
+      }
+      const result = await Model_Pesanan.updateStatus(req.params.id, status);
+      res.json({
+          status: true,
+          message: 'Status pesanan berhasil diupdate',
+          data: result
+      });
+  } catch (error) {
+      res.status(500).json({
+          status: false,
+          message: error.message
+      });
+  }
 });
 
 // GET - Mendapatkan pesanan berdasarkan ID pelanggan

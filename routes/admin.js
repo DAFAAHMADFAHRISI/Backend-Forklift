@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { verifyToken, adminOnly } = require('../middleware/authMiddleware');
 const db = require('../config/databases');
+const Model_Pemesanan = require('../model/Model_Pemesanan');
+const { createLogTransaksi } = require('../helpers/logHelper');
 
 // Middleware untuk semua route admin
 router.use(verifyToken, adminOnly);
@@ -284,6 +286,76 @@ router.get('/laporan/pembayaran', async (req, res) => {
         res.json({ status: true, data: laporan });
     } catch (error) {
         res.status(500).json({ status: false, message: error.message });
+    }
+});
+
+// Mendapatkan daftar pemesanan dengan status pembayaran
+router.get('/pemesanan-pembayaran', verifyToken, adminOnly, async (req, res) => {
+    try {
+        const [pemesanan] = await db.query(`
+            SELECT 
+                p.*,
+                u.nama as nama_user,
+                f.nama_unit,
+                o.nama_operator,
+                pb.jumlah as jumlah_pembayaran,
+                pb.metode as metode_pembayaran,
+                pb.tanggal_pembayaran,
+                bt.file_bukti,
+                bt.gambar_bukti,
+                bt.tanggal_upload,
+                bt.status_verifikasi
+            FROM pemesanan p
+            LEFT JOIN user u ON p.id_user = u.id_user
+            LEFT JOIN unit_forklift f ON p.id_unit = f.id_unit
+            LEFT JOIN operator o ON p.id_operator = o.id_operator
+            LEFT JOIN pembayaran pb ON p.id_pemesanan = pb.id_pemesanan
+            LEFT JOIN bukti_transfer bt ON pb.id_pembayaran = bt.id_pembayaran
+            WHERE p.status IN ('menunggu pembayaran', 'menunggu konfirmasi')
+            ORDER BY p.id_pemesanan DESC
+        `);
+        res.json({ status: true, data: pemesanan });
+    } catch (error) {
+        res.status(500).json({ status: false, message: error.message });
+    }
+});
+
+// Verifikasi pembayaran dan update status pemesanan
+router.put('/verifikasi-pembayaran/:id_pemesanan', verifyToken, adminOnly, async (req, res) => {
+    try {
+        const { id_pemesanan } = req.params;
+        const { status, catatan } = req.body;
+
+        // Validasi status
+        if (!['diterima', 'ditolak'].includes(status)) {
+            return res.status(400).json({
+                status: false,
+                message: 'Status harus berupa "diterima" atau "ditolak"'
+            });
+        }
+
+        // Update status pemesanan
+        const newStatus = status === 'diterima' ? 'menunggu konfirmasi' : 'menunggu pembayaran';
+        await Model_Pemesanan.updateStatus(id_pemesanan, newStatus);
+
+        // Buat log transaksi
+        await createLogTransaksi(
+            id_pemesanan,
+            `verifikasi_pembayaran_${status}`,
+            catatan || `Pembayaran ${status} oleh admin`
+        );
+
+        res.json({
+            status: true,
+            message: `Pembayaran berhasil ${status}`,
+            data: { status: newStatus }
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: false,
+            message: 'Gagal memverifikasi pembayaran',
+            error: error.message
+        });
     }
 });
 

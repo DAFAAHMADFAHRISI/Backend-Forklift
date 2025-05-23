@@ -102,26 +102,26 @@ router.post('/store', async (req, res) => {
   }
 });
 
-// DELETE - Menghapus log transaksi
-router.delete('/delete/:id', async (req, res) => {
+// DELETE - Menghapus log transaksi (Admin only)
+router.delete('/delete/:id', verifyToken, adminOnly, async (req, res) => {
   try {
-    const id = req.params.id;
-    
-    // Cek apakah log transaksi ada
+    const id = parseInt(req.params.id, 10);
     const logData = await Model_LogTransaksi.getId(id);
-    if (!logData || logData.length === 0) {
+    console.log('DEBUG id:', id);
+    console.log('DEBUG logData:', logData);
+    if (!logData) {
       return res.status(404).json({
         status: false,
         message: 'Log transaksi tidak ditemukan'
       });
     }
-    
-    await Model_LogTransaksi.delete(id);
+    await Model_LogTransaksi.Delete(id);
     res.status(200).json({
       status: true,
       message: 'Log transaksi berhasil dihapus'
     });
   } catch (error) {
+    console.log('DEBUG error:', error);
     res.status(500).json({
       status: false,
       message: 'Gagal menghapus log transaksi',
