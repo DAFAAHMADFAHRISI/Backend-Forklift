@@ -1,7 +1,7 @@
 const express = require('express');
 const Model_Feedback = require('../model/Model_Feedback');
 const router = express.Router();
-const { verifyToken, userOnly } = require('../middleware/authMiddleware');
+const { verifyToken, userOnly, adminOnly } = require('../middleware/authMiddleware');
 
 // GET - Mendapatkan semua feedback
 router.get('/', async (req, res) => {
@@ -70,17 +70,18 @@ router.get('/:id', async (req, res) => {
 
 // POST - Menambahkan feedback baru
 router.post('/store', verifyToken, userOnly, async (req, res) => {
+  console.log('HEADERS:', req.headers); // Debug log headers
+  console.log('CONTENT-TYPE:', req.headers['content-type']); // Debug log content-type
+  console.log('BODY:', req.body); // Debug log body
   try {
     const { id_pemesanan, rating, komentar } = req.body;
-    
     // Validasi input
-    if (!id_pemesanan || !rating) {
+    if (typeof id_pemesanan === 'undefined' || typeof rating === 'undefined') {
       return res.status(400).json({
         status: false,
         message: 'ID pemesanan dan rating diperlukan'
       });
     }
-    
     // Validasi rating
     if (rating < 1 || rating > 5) {
       return res.status(400).json({
@@ -88,13 +89,11 @@ router.post('/store', verifyToken, userOnly, async (req, res) => {
         message: 'Rating harus antara 1 sampai 5'
       });
     }
-    
     const feedbackData = {
       id_pemesanan,
       rating,
       komentar
     };
-    
     await Model_Feedback.store(feedbackData);
     res.status(201).json({
       status: true,
@@ -151,7 +150,7 @@ router.patch('/update/:id', async (req, res) => {
 });
 
 // DELETE - Menghapus feedback
-router.delete('/delete/:id', async (req, res) => {
+router.delete('/delete/:id', verifyToken, adminOnly, async (req, res) => {
   try {
     const id = req.params.id;
     

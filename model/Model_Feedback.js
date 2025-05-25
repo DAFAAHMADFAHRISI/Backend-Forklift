@@ -100,6 +100,38 @@ class Model_Feedback {
       });
     });
   }
+
+  static async getByPemesanan(id_pemesanan) {
+    return new Promise((resolve, reject) => {
+      connection.query(
+        `SELECT f.*, p.id_user 
+         FROM feedback f
+         JOIN pemesanan p ON f.id_pemesanan = p.id_pemesanan
+         WHERE f.id_pemesanan = ?
+         ORDER BY f.id_feedback DESC`,
+        [id_pemesanan],
+        (err, rows) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(rows);
+          }
+        }
+      );
+    });
+  }
+
+  static async delete(id) {
+    return new Promise((resolve, reject) => {
+      connection.query('DELETE FROM feedback WHERE id_feedback = ?', [id], (err, result) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(result);
+        }
+      });
+    });
+  }
 }
 
 module.exports = Model_Feedback; 
