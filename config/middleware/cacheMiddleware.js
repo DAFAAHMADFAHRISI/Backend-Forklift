@@ -1,31 +1,24 @@
-const Redis = require("ioredis");
-const redis = new Redis({ host: "172.24.234.167", port: 6379 });
+const NodeCache = require('node-cache');
+const cache = new NodeCache({ stdTTL: 5 }); // Cache akan expired dalam 5 detik
 
-redis.ping((err, result) => {
-  if (err) {
-    console.error("Redis tidak terkoneksi:", err);
-  } else {
-    console.log("Redis terkoneksi:", result);
-  }
-});
+const cacheMiddleware = (req, res, next) => {
+    const cacheKey = req.originalUrl;
+    const cachedData = cache.get(cacheKey);
 
-const cacheMiddleware = async (req, res, next) => {
-  const cacheKey = req.originalUrl;
-  const cachedData = await redis.get(cacheKey);
+    if (cachedData) {
+        console.log("Data diambil dari cache");
+        return res.json(cachedData);
+    }
 
-  if (cachedData) {
-    console.log("Data diambil dari cache");
-    return res.json(JSON.parse(cachedData));
-  }
+    // Override res.json untuk menyimpan response ke cache
+    const originalJson = res.json;
+    res.json = function(data) {
+        cache.set(cacheKey, data);
+        console.log(`Data untuk ${cacheKey} disimpan ke cache`);
+        return originalJson.call(this, data);
+    };
 
-  res.sendResponse = res.json;
-  res.json = async (body) => {
-    await redis.setex(cacheKey, 60, JSON.stringify(body));
-    console.log(`Data untuk ${cacheKey} disimpan ke cache`);
-    res.sendResponse(body);
-  };
-
-  next();
+    next();
 };
 
 module.exports = cacheMiddleware;

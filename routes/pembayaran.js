@@ -90,6 +90,10 @@ router.post('/store', async (req, res) => {
     // Simpan pembayaran
     const result = await Model_Pembayaran.store(pembayaranData);
     const idPembayaran = result.insertId;
+
+    // Update status pesanan menjadi 'menunggu konfirmasi'
+    const Model_Pesanan = require('../model/Model_Pesanan');
+    await Model_Pesanan.updateStatus(id_pemesanan, 'menunggu konfirmasi');
     
     res.status(201).json({
       status: true,

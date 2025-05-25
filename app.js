@@ -5,6 +5,11 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 const cors = require('cors');
+const { onlyDomain } = require('./config/middleware/corsOptions');
+const cacheMiddleware = require('./config/middleware/cacheMiddleware');
+const limiter = require('./config/middleware/ratelimiter');
+const testRouter = require('./routes/test');
+const testCacheRouter = require('./routes/test-cache');
 
 var session = require('express-session');
 const MemoryStore = require('express-session').MemoryStore;
@@ -27,7 +32,7 @@ var logTransaksiRouter = require('./routes/log_transaksi');
 var app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors(onlyDomain));
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -35,6 +40,22 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/static', express.static(path.join(__dirname, 'public/images')));
 app.use('/public/images', express.static(path.join(__dirname, 'public/images')));
+
+// Test routes dengan middleware
+app.use('/api/test/cors', testRouter); // Test CORS
+app.use('/api/test/cache', cacheMiddleware, testRouter); // Test Cache
+app.use('/api/test/rate-limit', limiter, testRouter); // Test Rate Limiter
+
+// Terapkan rate limiter ke route yang membutuhkan pembatasan
+app.use('/api/feedback', limiter); // Rate limit untuk route feedback
+app.use('/api/pembayaran', limiter); // Rate limit untuk route pembayaran
+
+// Terapkan cache middleware ke route yang membutuhkan caching
+app.use('/api/units', cacheMiddleware); // Cache untuk route units
+app.use('/api/pelanggan', cacheMiddleware); // Cache untuk route pelanggan
+
+// Test routes
+app.use('/api/test-cache', testCacheRouter);
 
 // View engine setup
 app.set('views', path.join(__dirname, 'views'));

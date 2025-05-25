@@ -3,7 +3,7 @@ const Model_Pesanan = require('../model/Model_Pesanan');
 const router = express.Router();
 const { verifyToken, adminOnly, userOnly, checkUserOwnership } = require('../middleware/authMiddleware');
 
-// Protected route - User bisa lihat pesanan miliknya, admin bisa lihat semua
+// Rute terproteksi - User bisa lihat pesanan miliknya, admin bisa lihat semua
 router.get('/', verifyToken, async (req, res) => {
     try {
         let pesanan;
@@ -14,171 +14,188 @@ router.get('/', verifyToken, async (req, res) => {
         }
         res.json({
             status: true,
-            message: 'List pesanan',
+            pesan: 'Daftar pesanan berhasil diambil',
             data: pesanan
         });
     } catch (error) {
         res.status(500).json({
             status: false,
-            message: error.message
+            pesan: 'Terjadi kesalahan saat mengambil data pesanan'
         });
     }
 });
 
-// Protected route - User bisa buat pesanan
+// Rute terproteksi - Hanya user yang bisa membuat pesanan
 router.post('/', verifyToken, userOnly, async (req, res) => {
     try {
+        const { id_unit, id_operator, tanggal_mulai, tanggal_selesai, lokasi_pengiriman, nama_perusahaan } = req.body;
+        
+        // Validasi input
+        if (!id_unit || !tanggal_mulai || !tanggal_selesai || !lokasi_pengiriman) {
+            return res.status(400).json({
+                status: false,
+                pesan: 'Mohon lengkapi semua data yang diperlukan'
+            });
+        }
+
         const pesananData = {
-            ...req.body,
-            id_user: req.user.id_user // Pastikan id_user dari token
+            id_user: req.user.id_user,
+            id_unit,
+            id_operator,
+            tanggal_mulai,
+            tanggal_selesai,
+            lokasi_pengiriman,
+            nama_perusahaan,
+            status: 'menunggu pembayaran'
         };
-        const result = await Model_Pesanan.Store(pesananData);
-        res.json({
+
+        const result = await Model_Pesanan.store(pesananData);
+        res.status(201).json({
             status: true,
-            message: 'Berhasil membuat pesanan',
-            data: result
+            pesan: 'Pesanan berhasil dibuat',
+            id_pemesanan: result.insertId
         });
     } catch (error) {
         res.status(500).json({
             status: false,
-            message: error.message
+            pesan: 'Gagal membuat pesanan',
+            error: error.message
         });
     }
 });
 
-// Protected route - User hanya bisa akses pesanan miliknya
+// Rute terproteksi - User hanya bisa akses pesanan miliknya
 router.get('/:id', verifyToken, async (req, res) => {
     try {
         const pesanan = await Model_Pesanan.getId(req.params.id);
         
-        // Cek kepemilikan pesanan
         if (req.user.role !== 'admin' && pesanan.id_user !== req.user.id_user) {
             return res.status(403).json({
                 status: false,
-                message: 'Access denied. This is not your order.'
+                pesan: 'Akses ditolak. Ini bukan pesanan Anda'
             });
         }
 
         res.json({
             status: true,
-            message: 'Detail pesanan',
+            pesan: 'Detail pesanan berhasil diambil',
             data: pesanan
         });
     } catch (error) {
         res.status(500).json({
             status: false,
-            message: error.message
+            pesan: 'Gagal mengambil detail pesanan'
         });
     }
 });
 
-// Protected route - Hanya admin yang bisa update status pesanan
+// Rute terproteksi - Hanya admin yang bisa update status pesanan
 router.put('/:id/status', verifyToken, adminOnly, async (req, res) => {
-  try {
-      const allowedStatus = ['menunggu pembayaran', 'menunggu konfirmasi', 'dikirim', 'selesai'];
-      const { status } = req.body;
-      if (!allowedStatus.includes(status)) {
-          return res.status(400).json({
-              status: false,
-              message: 'Status tidak valid'
-          });
-      }
-      const result = await Model_Pesanan.updateStatus(req.params.id, status);
-      res.json({
-          status: true,
-          message: 'Status pesanan berhasil diupdate',
-          data: result
-      });
-  } catch (error) {
-      res.status(500).json({
-          status: false,
-          message: error.message
-      });
-  }
+    try {
+        const allowedStatus = ['menunggu pembayaran', 'menunggu konfirmasi', 'dikirim', 'selesai'];
+        const { status } = req.body;
+        if (!allowedStatus.includes(status)) {
+            return res.status(400).json({
+                status: false,
+                pesan: 'Status tidak valid'
+            });
+        }
+        const result = await Model_Pesanan.updateStatus(req.params.id, status);
+        res.json({
+            status: true,
+            pesan: 'Status pesanan berhasil diperbarui',
+            data: result
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: false,
+            pesan: 'Gagal memperbarui status pesanan'
+        });
+    }
 });
 
 // GET - Mendapatkan pesanan berdasarkan ID pelanggan
 router.get('/pelanggan/:id', async (req, res) => {
-  try {
-    const idPelanggan = req.params.id;
-    const pesanan = await Model_Pesanan.getByPelanggan(idPelanggan);
-    
-    res.status(200).json({
-      status: true,
-      message: 'Data pesanan pelanggan berhasil diambil',
-      data: pesanan
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: false,
-      message: 'Gagal mengambil data pesanan pelanggan',
-      error: error.message
-    });
-  }
+    try {
+        const idPelanggan = req.params.id;
+        const pesanan = await Model_Pesanan.getByPelanggan(idPelanggan);
+        
+        res.status(200).json({
+            status: true,
+            pesan: 'Data pesanan pelanggan berhasil diambil',
+            data: pesanan
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: false,
+            pesan: 'Gagal mengambil data pesanan pelanggan'
+        });
+    }
 });
 
 // GET - Mendapatkan pesanan berdasarkan ID
 router.get('/:id', async (req, res) => {
-  try {
-    const id = req.params.id;
-    const pesanan = await Model_Pesanan.getId(id);
-    
-    if (!pesanan || pesanan.length === 0) {
-      return res.status(404).json({
-        status: false,
-        message: 'Pesanan tidak ditemukan'
-      });
+    try {
+        const id = req.params.id;
+        const pesanan = await Model_Pesanan.getId(id);
+        
+        if (!pesanan || pesanan.length === 0) {
+            return res.status(404).json({
+                status: false,
+                pesan: 'Pesanan tidak ditemukan'
+            });
+        }
+        
+        res.status(200).json({
+            status: true,
+            pesan: 'Detail pesanan berhasil diambil',
+            data: pesanan[0]
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: false,
+            pesan: 'Gagal mengambil detail pesanan'
+        });
     }
-    
-    res.status(200).json({
-      status: true,
-      message: 'Detail pesanan berhasil diambil',
-      data: pesanan[0]
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: false,
-      message: 'Gagal mengambil detail pesanan',
-      error: error.message
-    });
-  }
 });
 
-// POST - Membuat pesanan baru (admin only, gunakan id_user)
-router.post('/store', verifyToken, adminOnly, async (req, res) => {
-  try {
-    const { id_user, id_unit, id_operator, tanggal_mulai, tanggal_selesai, lokasi_pengiriman, nama_perusahaan, status } = req.body;
-    // Validasi input
-    if (!id_user || !id_unit || !tanggal_mulai || !tanggal_selesai || !lokasi_pengiriman) {
-      return res.status(400).json({
-        status: false,
-        message: 'Semua field diperlukan'
-      });
+// POST - Membuat pesanan baru (user only)
+router.post('/store', verifyToken, userOnly, async (req, res) => {
+    try {
+        const { id_unit, id_operator, tanggal_mulai, tanggal_selesai, lokasi_pengiriman, nama_perusahaan } = req.body;
+        
+        // Validasi input
+        if (!id_unit || !tanggal_mulai || !tanggal_selesai || !lokasi_pengiriman) {
+            return res.status(400).json({
+                status: false,
+                pesan: 'Mohon lengkapi semua data yang diperlukan'
+            });
+        }
+
+        const pesananData = {
+            id_user: req.user.id_user,
+            id_unit,
+            id_operator,
+            tanggal_mulai,
+            tanggal_selesai,
+            lokasi_pengiriman,
+            nama_perusahaan,
+            status: 'menunggu pembayaran'
+        };
+
+        const result = await Model_Pesanan.store(pesananData);
+        res.status(201).json({
+            status: true,
+            pesan: 'Pesanan berhasil dibuat',
+            id_pemesanan: result.insertId
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: false,
+            pesan: 'Gagal membuat pesanan',
+            error: error.message
+        });
     }
-    const pesananData = {
-      id_user,
-      id_unit,
-      id_operator,
-      tanggal_mulai,
-      tanggal_selesai,
-      lokasi_pengiriman,
-      nama_perusahaan,
-      status: status || 'menunggu pembayaran'
-    };
-    const result = await Model_Pesanan.store(pesananData);
-    const idPemesanan = result.insertId;
-    res.status(201).json({
-      status: true,
-      message: 'Pesanan berhasil dibuat',
-      id_pemesanan: idPemesanan
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: false,
-      message: 'Gagal membuat pesanan',
-      error: error.message
-    });
-  }
 });
 
 // PATCH - Mengupdate pesanan (admin only, gunakan id_user)

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Cache</title>
+    <style>
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .card {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .result {
+            background: #f5f5f5;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 3px;
+            white-space: pre-wrap;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        .info {
+            color: #666;
+            font-style: italic;
+            margin: 10px 0;
+        }
+        .timer {
+            font-weight: bold;
+            color: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test Cache API (5 detik)</h1>
+        
+        <div class="card">
+            <h2>Test Cache Data Statis</h2>
+            <p class="info">Data ini akan tetap sama selama 5 detik karena di-cache</p>
+            <button onclick="testStaticCache()">Test Cache Statis</button>
+            <div id="staticResult" class="result"></div>
+            <div id="staticTimer" class="timer"></div>
+        </div>
+
+        <div class="card">
+            <h2>Test Cache Data Dinamis</h2>
+            <p class="info">Data ini akan berubah setiap request, tapi di-cache selama 5 detik</p>
+            <button onclick="testDynamicCache()">Test Cache Dinamis</button>
+            <div id="dynamicResult" class="result"></div>
+            <div id="dynamicTimer" class="timer"></div>
+        </div>
+
+        <div class="card">
+            <h2>Instruksi Testing:</h2>
+            <ol>
+                <li>Klik tombol "Test Cache Statis" beberapa kali - data akan tetap sama selama 5 detik</li>
+                <li>Klik tombol "Test Cache Dinamis" beberapa kali - data akan tetap sama selama 5 detik</li>
+                <li>Tunggu 5 detik, lalu klik lagi - data akan diperbarui</li>
+                <li>Perhatikan timestamp untuk melihat kapan data terakhir diperbarui</li>
+                <li>Timer akan menunjukkan berapa detik tersisa sebelum cache expired</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        let staticTimer = null;
+        let dynamicTimer = null;
+
+        function startTimer(elementId, duration) {
+            let timeLeft = duration;
+            const timerElement = document.getElementById(elementId);
+            
+            if (timerElement) {
+                timerElement.textContent = `Cache akan expired dalam ${timeLeft} detik`;
+                
+                const timer = setInterval(() => {
+                    timeLeft--;
+                    if (timeLeft >= 0) {
+                        timerElement.textContent = `Cache akan expired dalam ${timeLeft} detik`;
+                    } else {
+                        clearInterval(timer);
+                        timerElement.textContent = 'Cache sudah expired';
+                    }
+                }, 1000);
+
+                return timer;
+            }
+            return null;
+        }
+
+        async function testStaticCache() {
+            try {
+                const response = await fetch('http://localhost:3000/api/test-cache/static');
+                const data = await response.json();
+                document.getElementById('staticResult').textContent = JSON.stringify(data, null, 2);
+                
+                // Reset timer
+                if (staticTimer) clearInterval(staticTimer);
+                staticTimer = startTimer('staticTimer', 5);
+            } catch (error) {
+                document.getElementById('staticResult').textContent = 'Error: ' + error.message;
+            }
+        }
+
+        async function testDynamicCache() {
+            try {
+                const response = await fetch('http://localhost:3000/api/test-cache/dynamic');
+                const data = await response.json();
+                document.getElementById('dynamicResult').textContent = JSON.stringify(data, null, 2);
+                
+                // Reset timer
+                if (dynamicTimer) clearInterval(dynamicTimer);
+                dynamicTimer = startTimer('dynamicTimer', 5);
+            } catch (error) {
+                document.getElementById('dynamicResult').textContent = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html> 
