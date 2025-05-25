@@ -98,6 +98,50 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// GET - Riwayat pembayaran berdasarkan id_user
+router.get('/user/:id_user', async (req, res) => {
+  try {
+    const id_user = req.params.id_user;
+    const pembayaran = await Model_Pembayaran.getByUserId(id_user);
+    res.status(200).json({
+      status: true,
+      message: 'Riwayat pembayaran berhasil diambil',
+      data: pembayaran
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: false,
+      message: 'Gagal mengambil riwayat pembayaran',
+      error: error.message
+    });
+  }
+});
+
+// GET - Feedback dan riwayat pembayaran user
+router.get('/user/:id_user/riwayat-feedback', async (req, res) => {
+  try {
+    const id_user = req.params.id_user;
+    const Model_Feedback = require('../model/Model_Feedback');
+    const feedback = await Model_Feedback.getByUserId(id_user);
+    const pembayaran = await Model_Pembayaran.getByUserId(id_user);
+
+    res.status(200).json({
+      status: true,
+      message: 'Data feedback dan riwayat pembayaran berhasil diambil',
+      data: {
+        feedback,
+        pembayaran
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: false,
+      message: 'Gagal mengambil data',
+      error: error.message
+    });
+  }
+});
+
 // POST - Membuat pembayaran baru
 router.post('/store', upload.single('bukti_pembayaran'), async (req, res) => {
   try {

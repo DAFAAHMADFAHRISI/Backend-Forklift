@@ -40,6 +40,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/static', express.static(path.join(__dirname, 'public/images')));
 app.use('/public/images', express.static(path.join(__dirname, 'public/images')));
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
 // Test routes dengan middleware
 app.use('/api/test/cors', testRouter); // Test CORS
