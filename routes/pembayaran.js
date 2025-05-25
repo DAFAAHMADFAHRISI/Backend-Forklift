@@ -1,6 +1,37 @@
 const express = require('express');
 const Model_Pembayaran = require('../model/Model_Pembayaran');
 const router = express.Router();
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+// Pastikan folder upload ada
+const uploadDir = 'public/uploads/pembayaran';
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Configure multer for image upload
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadDir)
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + '-' + file.originalname)
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  fileFilter: function (req, file, cb) {
+    const allowedExt = ['.png', '.jpg', '.jpeg'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowedExt.includes(ext)) {
+      return cb(null, true);
+    }
+    cb(new Error('Only .png, .jpg and .jpeg format allowed!'));
+  }
+});
 
 // GET - Mendapatkan semua pembayaran
 router.get('/', async (req, res) => {
@@ -68,15 +99,15 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST - Membuat pembayaran baru
-router.post('/store', async (req, res) => {
+router.post('/store', upload.single('bukti_pembayaran'), async (req, res) => {
   try {
     const { id_pemesanan, jumlah, metode, tanggal_pembayaran } = req.body;
     
     // Validasi input
-    if (!id_pemesanan || !jumlah || !metode || !tanggal_pembayaran) {
+    if (!id_pemesanan || !jumlah || !metode || !tanggal_pembayaran || !req.file) {
       return res.status(400).json({
         status: false,
-        message: 'Semua field diperlukan'
+        message: 'Semua field diperlukan termasuk bukti pembayaran'
       });
     }
     
@@ -84,12 +115,22 @@ router.post('/store', async (req, res) => {
       id_pemesanan,
       jumlah,
       metode,
-      tanggal_pembayaran
+      tanggal_pembayaran,
+      bukti_pembayaran: req.file.filename
     };
     
     // Simpan pembayaran
     const result = await Model_Pembayaran.store(pembayaranData);
     const idPembayaran = result.insertId;
+
+    // Tambahkan ke bukti_transfer
+    const Model_BuktiTransfer = require('../model/Model_BuktiTransfer');
+    await Model_BuktiTransfer.store({
+      id_pembayaran: idPembayaran,
+      gambar_bukti: req.file.filename,
+      tanggal_upload: new Date(),
+      status_verifikasi: 'pending'
+    });
 
     // Update status pesanan menjadi 'menunggu konfirmasi'
     const Model_Pesanan = require('../model/Model_Pesanan');
@@ -98,7 +139,8 @@ router.post('/store', async (req, res) => {
     res.status(201).json({
       status: true,
       message: 'Pembayaran berhasil dibuat',
-      id_pembayaran: idPembayaran
+      id_pembayaran: idPembayaran,
+      bukti_pembayaran: req.file.filename
     });
   } catch (error) {
     res.status(500).json({
