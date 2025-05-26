@@ -10,6 +10,7 @@ const cacheMiddleware = require('./config/middleware/cacheMiddleware');
 const limiter = require('./config/middleware/ratelimiter');
 const testRouter = require('./routes/test');
 const testCacheRouter = require('./routes/test-cache');
+const paymentRouter = require('./routes/payment');
 
 var session = require('express-session');
 const MemoryStore = require('express-session').MemoryStore;
@@ -96,6 +97,7 @@ app.use('/api/feedback', feedbackRouter);
 app.use('/api/bukti-transfer', buktiTransferRouter);
 app.use('/api/operator', operatorRouter);
 app.use('/api/log-transaksi', logTransaksiRouter);
+app.use('/api/payment', paymentRouter);
 
 // Add routes
 app.use('/pemesanan', require('./routes/pemesanan'));
