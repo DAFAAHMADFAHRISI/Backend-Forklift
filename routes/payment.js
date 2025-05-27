@@ -3,17 +3,37 @@ const router = express.Router();
 const snap = require('../config/midtrans');
 const Model_Pembayaran = require('../model/Model_Pembayaran');
 const Model_Pesanan = require('../model/Model_Pesanan');
+const { verifyToken, checkPesananOwnership, userOnly } = require('../middleware/authMiddleware');
+
+// Middleware untuk semua route payment
+router.use(verifyToken, userOnly);
 
 // Create transaction
 router.post('/create-transaction', async (req, res) => {
     try {
         const { id_pemesanan, jumlah, metode } = req.body;
+        const id_user = req.user.id_user; // dari JWT
 
         // Validasi input
         if (!id_pemesanan || !jumlah || !metode) {
             return res.status(400).json({
                 status: false,
                 message: 'Semua field diperlukan'
+            });
+        }
+
+        // Ambil data pesanan dari database
+        const pesanan = await Model_Pesanan.getId(id_pemesanan);
+        if (!pesanan) {
+            return res.status(404).json({
+                status: false,
+                message: 'Pesanan tidak ditemukan'
+            });
+        }
+        if (pesanan.id_user !== id_user) {
+            return res.status(403).json({
+                status: false,
+                message: 'Access denied. You can only access your own orders.'
             });
         }
 
@@ -99,7 +119,7 @@ router.post('/notification', async (req, res) => {
         // Update status pembayaran
         await Model_Pembayaran.updateByOrderId(orderId, { status });
 
-        // Jika pembayaran sukses, update status pesanan
+        // Jika pembayaran sukses, update status pesanan menjadi 'menunggu konfirmasi'
         if (status === 'success') {
             const pembayaran = await Model_Pembayaran.getByOrderId(orderId);
             if (pembayaran) {

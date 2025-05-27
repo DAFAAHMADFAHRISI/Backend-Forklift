@@ -1,9 +1,14 @@
 const express = require('express');
 const Model_Pembayaran = require('../model/Model_Pembayaran');
+const Model_Pesanan = require('../model/Model_Pesanan');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { verifyToken, userOnly } = require('../middleware/authMiddleware');
+
+// Middleware untuk semua route pembayaran
+router.use(verifyToken, userOnly);
 
 // Pastikan folder upload ada
 const uploadDir = 'public/uploads/pembayaran';
@@ -259,6 +264,62 @@ router.delete('/delete/:id', async (req, res) => {
       error: error.message
     });
   }
+});
+
+// POST - Membuat pesanan baru
+router.post('/create-order', async (req, res) => {
+    try {
+        const { 
+            id_user,
+            id_unit,
+            tanggal_mulai,
+            tanggal_selesai,
+            total_harga,
+            catatan
+        } = req.body;
+
+        // Validasi input
+        if (!id_user || !id_unit || !tanggal_mulai || !tanggal_selesai || !total_harga) {
+            return res.status(400).json({
+                status: false,
+                message: 'Semua field diperlukan'
+            });
+        }
+
+        // Buat data pesanan
+        const pesananData = {
+            id_user,
+            id_unit,
+            tanggal_mulai,
+            tanggal_selesai,
+            total_harga,
+            catatan: catatan || '',
+            status: 'menunggu pembayaran',
+            tanggal_pemesanan: new Date()
+        };
+
+        // Simpan pesanan ke database
+        const result = await Model_Pesanan.store(pesananData);
+        const idPemesanan = result.insertId;
+
+        // Ambil data pesanan yang baru dibuat
+        const pesanan = await Model_Pesanan.getId(idPemesanan);
+
+        res.status(201).json({
+            status: true,
+            message: 'Pesanan berhasil dibuat',
+            data: {
+                id_pemesanan: idPemesanan,
+                ...pesanan[0]
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: false,
+            message: 'Gagal membuat pesanan',
+            error: error.message
+        });
+    }
 });
 
 module.exports = router; 
