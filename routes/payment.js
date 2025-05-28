@@ -93,11 +93,16 @@ router.post('/create-transaction', async (req, res) => {
 // Handle notification from Midtrans
 router.post('/notification', async (req, res) => {
     try {
-        const notification = req.body;
-        
-        // Verify signature
-        const statusResponse = await snap.transaction.notification(notification);
-        
+        console.log('Notifikasi Midtrans masuk:', req.body); // Log notifikasi masuk
+        let statusResponse;
+        // Jika ada field simulate, gunakan payload langsung (untuk testing manual)
+        if (req.body.simulate) {
+            statusResponse = req.body;
+        } else {
+            // Proses normal: verifikasi ke Midtrans
+            statusResponse = await snap.transaction.notification(req.body);
+        }
+
         const orderId = statusResponse.order_id;
         const transactionStatus = statusResponse.transaction_status;
         const fraudStatus = statusResponse.fraud_status;
@@ -124,6 +129,9 @@ router.post('/notification', async (req, res) => {
             const pembayaran = await Model_Pembayaran.getByOrderId(orderId);
             if (pembayaran) {
                 await Model_Pesanan.updateStatus(pembayaran.id_pemesanan, 'menunggu konfirmasi');
+                console.log('Status pesanan', pembayaran.id_pemesanan, 'berhasil diupdate ke: menunggu konfirmasi');
+            } else {
+                console.log('Pembayaran tidak ditemukan untuk order_id:', orderId);
             }
         }
 
@@ -132,6 +140,7 @@ router.post('/notification', async (req, res) => {
             message: 'Notification processed successfully'
         });
     } catch (error) {
+        console.error('Error saat memproses notifikasi Midtrans:', error);
         res.status(500).json({
             status: false,
             message: 'Gagal memproses notifikasi',
