@@ -103,29 +103,33 @@ class Model_Pembayaran {
 
   static async getByOrderId(orderId) {
     return new Promise((resolve, reject) => {
-      connection.query(`
-        SELECT p.* 
-        FROM pembayaran p
-        WHERE p.order_id = ?
-      `, [orderId], (err, rows) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(rows[0]);
+      connection.query(
+        'SELECT * FROM pembayaran WHERE order_id = ?',
+        [orderId],
+        (err, rows) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(rows[0]); // Return first matching record
+          }
         }
-      });
+      );
     });
   }
 
   static async updateByOrderId(orderId, data) {
     return new Promise((resolve, reject) => {
-      connection.query('UPDATE pembayaran SET ? WHERE order_id = ?', [data, orderId], (err, result) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(result);
+      connection.query(
+        'UPDATE pembayaran SET ? WHERE order_id = ?',
+        [data, orderId],
+        (err, result) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(result);
+          }
         }
-      });
+      );
     });
   }
 }

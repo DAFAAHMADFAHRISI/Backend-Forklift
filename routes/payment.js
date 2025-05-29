@@ -5,7 +5,90 @@ const Model_Pembayaran = require('../model/Model_Pembayaran');
 const Model_Pesanan = require('../model/Model_Pesanan');
 const { verifyToken, checkPesananOwnership, userOnly } = require('../middleware/authMiddleware');
 
-// Middleware untuk semua route payment
+// Endpoint notifikasi Midtrans (TANPA middleware JWT, letakkan paling atas)
+router.post('/notification', async (req, res) => {
+    try {
+        console.log('Notifikasi Midtrans masuk:', req.body); // Log notifikasi masuk
+        let statusResponse;
+        
+        // Jika ada field simulate, gunakan payload langsung (untuk testing manual)
+        if (req.body.simulate) {
+            statusResponse = req.body;
+        } else {
+            // Proses normal: verifikasi ke Midtrans
+            statusResponse = await snap.transaction.notification(req.body);
+        }
+
+        const orderId = statusResponse.order_id;
+        const transactionStatus = statusResponse.transaction_status;
+        const fraudStatus = statusResponse.fraud_status;
+
+        console.log(`Memproses notifikasi untuk order_id: ${orderId}`);
+        console.log(`Transaction Status: ${transactionStatus}, Fraud Status: ${fraudStatus}`);
+
+        // Cari pembayaran berdasarkan order_id
+        const pembayaran = await Model_Pembayaran.getByOrderId(orderId);
+        if (!pembayaran) {
+            console.error(`Pembayaran tidak ditemukan untuk order_id: ${orderId}`);
+            return res.status(404).json({
+                status: false,
+                message: 'Pembayaran tidak ditemukan'
+            });
+        }
+
+        // Update status pembayaran di database
+        let status = 'pending';
+        if (transactionStatus == 'capture') {
+            if (fraudStatus == 'challenge') {
+                status = 'challenge';
+            } else if (fraudStatus == 'accept') {
+                status = 'success';
+            }
+        } else if (transactionStatus == 'settlement') {
+            status = 'success';
+        } else if (transactionStatus == 'cancel' || transactionStatus == 'deny' || transactionStatus == 'expire') {
+            status = 'failed';
+        }
+
+        console.log(`Mengupdate status pembayaran ke: ${status}`);
+
+        // Update status pembayaran
+        await Model_Pembayaran.updateByOrderId(orderId, { 
+            status,
+            updated_at: new Date()
+        });
+
+        // Jika pembayaran sukses, update status pesanan menjadi 'menunggu konfirmasi'
+        if (status === 'success') {
+            console.log(`Pembayaran sukses, mengupdate status pesanan ${pembayaran.id_pemesanan} ke: menunggu konfirmasi`);
+            await Model_Pesanan.updateStatus(pembayaran.id_pemesanan, 'menunggu konfirmasi');
+        }
+
+        // Log hasil akhir
+        console.log(`Notifikasi berhasil diproses untuk order_id: ${orderId}`);
+        console.log(`Status akhir: ${status}`);
+
+        res.status(200).json({ 
+            status: true,
+            message: 'Notification processed successfully',
+            data: {
+                order_id: orderId,
+                transaction_status: transactionStatus,
+                fraud_status: fraudStatus,
+                payment_status: status
+            }
+        });
+    } catch (error) {
+        console.error('Error saat memproses notifikasi Midtrans:', error);
+        res.status(500).json({
+            status: false,
+            message: 'Gagal memproses notifikasi',
+            error: error.message
+        });
+    }
+});
+
+// Middleware untuk semua route payment (hanya untuk endpoint yang butuh autentikasi user)
 router.use(verifyToken, userOnly);
 
 // Create transaction
@@ -77,8 +160,12 @@ router.post('/create-transaction', async (req, res) => {
             status: true,
             message: 'Transaksi berhasil dibuat',
             data: {
-                ...transaction,
-                id_pembayaran: result.insertId
+                order_id: orderId,
+                token: transaction.token,
+                redirect_url: transaction.redirect_url,
+                id_pembayaran: result.insertId,
+                transaction_details: transaction.transaction_details,
+                customer_details: transaction.customer_details
             }
         });
     } catch (error) {
@@ -90,60 +177,47 @@ router.post('/create-transaction', async (req, res) => {
     }
 });
 
-// Handle notification from Midtrans
-router.post('/notification', async (req, res) => {
+// Get payment status by order_id
+router.get('/status/:orderId', async (req, res) => {
     try {
-        console.log('Notifikasi Midtrans masuk:', req.body); // Log notifikasi masuk
-        let statusResponse;
-        // Jika ada field simulate, gunakan payload langsung (untuk testing manual)
-        if (req.body.simulate) {
-            statusResponse = req.body;
-        } else {
-            // Proses normal: verifikasi ke Midtrans
-            statusResponse = await snap.transaction.notification(req.body);
+        const { orderId } = req.params;
+        
+        // Validasi orderId
+        if (!orderId) {
+            return res.status(400).json({
+                status: false,
+                message: 'Order ID diperlukan'
+            });
         }
 
-        const orderId = statusResponse.order_id;
-        const transactionStatus = statusResponse.transaction_status;
-        const fraudStatus = statusResponse.fraud_status;
-
-        // Update status pembayaran di database
-        let status = 'pending';
-        if (transactionStatus == 'capture') {
-            if (fraudStatus == 'challenge') {
-                status = 'challenge';
-            } else if (fraudStatus == 'accept') {
-                status = 'success';
-            }
-        } else if (transactionStatus == 'settlement') {
-            status = 'success';
-        } else if (transactionStatus == 'cancel' || transactionStatus == 'deny' || transactionStatus == 'expire') {
-            status = 'failed';
+        // Cari pembayaran berdasarkan order_id
+        const pembayaran = await Model_Pembayaran.getByOrderId(orderId);
+        
+        if (!pembayaran) {
+            return res.status(404).json({
+                status: false,
+                message: 'Pembayaran tidak ditemukan'
+            });
         }
 
-        // Update status pembayaran
-        await Model_Pembayaran.updateByOrderId(orderId, { status });
-
-        // Jika pembayaran sukses, update status pesanan menjadi 'menunggu konfirmasi'
-        if (status === 'success') {
-            const pembayaran = await Model_Pembayaran.getByOrderId(orderId);
-            if (pembayaran) {
-                await Model_Pesanan.updateStatus(pembayaran.id_pemesanan, 'menunggu konfirmasi');
-                console.log('Status pesanan', pembayaran.id_pemesanan, 'berhasil diupdate ke: menunggu konfirmasi');
-            } else {
-                console.log('Pembayaran tidak ditemukan untuk order_id:', orderId);
-            }
-        }
-
-        res.status(200).json({ 
+        // Jika pembayaran ditemukan, kembalikan status
+        res.status(200).json({
             status: true,
-            message: 'Notification processed successfully'
+            message: 'Status pembayaran berhasil diambil',
+            data: {
+                order_id: pembayaran.order_id,
+                status: pembayaran.status,
+                jumlah: pembayaran.jumlah,
+                metode: pembayaran.metode,
+                tanggal_pembayaran: pembayaran.tanggal_pembayaran,
+                id_pemesanan: pembayaran.id_pemesanan
+            }
         });
     } catch (error) {
-        console.error('Error saat memproses notifikasi Midtrans:', error);
+        console.error('Error saat mengambil status pembayaran:', error);
         res.status(500).json({
             status: false,
-            message: 'Gagal memproses notifikasi',
+            message: 'Gagal mengambil status pembayaran',
             error: error.message
         });
     }
