@@ -2,6 +2,26 @@ const express = require('express');
 const Model_Operator = require('../model/Model_Operator');
 const { verifyToken, adminOnly } = require('../middleware/authMiddleware');
 const router = express.Router();
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+// Konfigurasi folder upload
+const uploadDir = 'public/uploads/operator';
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + '-' + file.originalname);
+  }
+});
+
+const upload = multer({ storage: storage });
 
 // GET - Mendapatkan semua operator (semua user bisa akses)
 router.get('/', verifyToken, async (req, res) => {
@@ -67,16 +87,16 @@ router.get('/:id', verifyToken, async (req, res) => {
 });
 
 // POST - Menambahkan operator baru (admin only)
-router.post('/store', verifyToken, adminOnly, async (req, res) => {
+router.post('/store', verifyToken, adminOnly, upload.single('foto'), async (req, res) => {
   try {
     const { nama_operator, no_hp, status } = req.body;
-    
+    const foto = req.file ? req.file.filename : null;
     const data = {
       nama_operator,
+      foto, // simpan nama file gambar
       no_hp,
       status: status || 'tersedia'
     };
-    
     await Model_Operator.store(data);
     res.status(201).json({
       status: true,
@@ -179,7 +199,7 @@ router.delete('/delete/:id', verifyToken, adminOnly, async (req, res) => {
 });
 
 // PUT - Edit operator (admin only)
-router.put('/edit/:id', verifyToken, adminOnly, async (req, res) => {
+router.put('/edit/:id', verifyToken, adminOnly, upload.single('foto'), async (req, res) => {
   try {
     const id = req.params.id;
     const { nama_operator, no_hp, status } = req.body;
@@ -194,6 +214,7 @@ router.put('/edit/:id', verifyToken, adminOnly, async (req, res) => {
     if (nama_operator) data.nama_operator = nama_operator;
     if (no_hp) data.no_hp = no_hp;
     if (status) data.status = status;
+    if (req.file) data.foto = req.file.filename;
     await Model_Operator.update(id, data);
     res.status(200).json({
       status: true,

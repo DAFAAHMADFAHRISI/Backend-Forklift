@@ -28,6 +28,7 @@ CREATE TABLE unit_forklift (
 CREATE TABLE operator (
     id_operator INT AUTO_INCREMENT PRIMARY KEY,
     nama_operator VARCHAR(100),
+    foto VARCHAR(255), -- kolom baru untuk nama file foto
     no_hp VARCHAR(20),
     status ENUM('tersedia', 'dipesan', 'tidak tersedia') DEFAULT 'tersedia'
 );
@@ -56,17 +57,6 @@ CREATE TABLE pembayaran (
     metode VARCHAR(50),
     tanggal_pembayaran DATE,
     FOREIGN KEY (id_pemesanan) REFERENCES pemesanan(id_pemesanan)
-);
-
--- Tabel bukti_transfer
-CREATE TABLE bukti_transfer (
-    id_bukti INT AUTO_INCREMENT PRIMARY KEY,
-    id_pembayaran INT,
-    file_bukti VARCHAR(255),
-    gambar_bukti VARCHAR(255),
-    tanggal_upload TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    status_verifikasi ENUM('menunggu', 'diterima', 'ditolak') DEFAULT 'menunggu',
-    FOREIGN KEY (id_pembayaran) REFERENCES pembayaran(id_pembayaran)
 );
 
 -- Tabel log_transaksi
