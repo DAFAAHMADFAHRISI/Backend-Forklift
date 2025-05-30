@@ -184,6 +184,15 @@ router.post('/store', upload.single('bukti_pembayaran'), async (req, res) => {
     // Update status pesanan menjadi 'menunggu konfirmasi'
     const Model_Pesanan = require('../model/Model_Pesanan');
     await Model_Pesanan.updateStatus(id_pemesanan, 'menunggu konfirmasi');
+
+    // Tambahkan log transaksi
+    const Model_LogTransaksi = require('../model/Model_LogTransaksi');
+    await Model_LogTransaksi.store({
+      id_pemesanan,
+      status_transaksi: 'pembayaran_dibuat',
+      keterangan: `Pembayaran sebesar ${jumlah} dengan metode ${metode} telah dibuat dan menunggu verifikasi`,
+      waktu: new Date()
+    });
     
     res.status(201).json({
       status: true,

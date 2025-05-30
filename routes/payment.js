@@ -62,6 +62,15 @@ router.post('/notification', async (req, res) => {
         if (status === 'success') {
             console.log(`Pembayaran sukses, mengupdate status pesanan ${pembayaran.id_pemesanan} ke: menunggu konfirmasi`);
             await Model_Pesanan.updateStatus(pembayaran.id_pemesanan, 'menunggu konfirmasi');
+
+            // Tambahkan log transaksi otomatis
+            const Model_LogTransaksi = require('../model/Model_LogTransaksi');
+            await Model_LogTransaksi.store({
+                id_pemesanan: pembayaran.id_pemesanan,
+                status_transaksi: 'pembayaran_berhasil',
+                keterangan: `Pembayaran sebesar ${pembayaran.jumlah} dengan metode ${pembayaran.metode} telah berhasil`,
+                waktu: new Date()
+            });
         }
 
         // Log hasil akhir
