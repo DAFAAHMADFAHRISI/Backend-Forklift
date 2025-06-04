@@ -3,6 +3,7 @@ const router = express.Router();
 const snap = require('../config/midtrans');
 const Model_Pembayaran = require('../model/Model_Pembayaran');
 const Model_Pesanan = require('../model/Model_Pesanan');
+const Model_Unit = require('../model/Model_Unit');
 const { verifyToken, checkPesananOwnership, userOnly } = require('../middleware/authMiddleware');
 
 // Endpoint notifikasi Midtrans (TANPA middleware JWT, letakkan paling atas)
@@ -62,6 +63,14 @@ router.post('/notification', async (req, res) => {
         if (status === 'success') {
             console.log(`Pembayaran sukses, mengupdate status pesanan ${pembayaran.id_pemesanan} ke: menunggu konfirmasi`);
             await Model_Pesanan.updateStatus(pembayaran.id_pemesanan, 'menunggu konfirmasi');
+
+            // Ambil data pesanan untuk mendapatkan id_unit
+            const pesanan = await Model_Pesanan.getId(pembayaran.id_pemesanan);
+            if (pesanan && pesanan.id_unit) {
+                // Update status unit menjadi 'disewa'
+                await Model_Unit.updateStatus(pesanan.id_unit, 'disewa');
+                console.log(`Status unit ${pesanan.id_unit} diubah menjadi 'disewa'`);
+            }
 
             // Tambahkan log transaksi otomatis
             const Model_LogTransaksi = require('../model/Model_LogTransaksi');
