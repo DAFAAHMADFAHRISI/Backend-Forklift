@@ -1,3 +1,12 @@
+/**
+ * Routes Operator
+ * Menangani semua endpoint terkait operator forklift, termasuk:
+ * - Pengelolaan data operator
+ * - Penugasan operator
+ * - Pengambilan data operator
+ * - Pengelolaan jadwal operator
+ */
+
 const express = require('express');
 const Model_Operator = require('../model/Model_Operator');
 const { verifyToken, adminOnly } = require('../middleware/authMiddleware');
@@ -5,6 +14,8 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const Model_Pesanan = require('../model/Model_Pesanan');
+const { createLogTransaksi } = require('../helpers/logHelper');
 
 // Konfigurasi folder upload
 const uploadDir = 'public/uploads/operator';
@@ -23,8 +34,14 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-// GET - Mendapatkan semua operator (semua user bisa akses)
-router.get('/', verifyToken, async (req, res) => {
+// Middleware untuk memastikan user sudah login dan admin
+router.use(verifyToken, adminOnly);
+
+/**
+ * GET /operator
+ * Mengambil semua data operator
+ */
+router.get('/', async (req, res) => {
   try {
     const operators = await Model_Operator.getAll();
     res.status(200).json({
@@ -41,7 +58,10 @@ router.get('/', verifyToken, async (req, res) => {
   }
 });
 
-// GET - Mendapatkan operator yang tersedia (semua user bisa akses)
+/**
+ * GET /operator/tersedia
+ * Mengambil daftar operator yang tersedia (tidak sedang bertugas)
+ */
 router.get('/available', verifyToken, async (req, res) => {
   try {
     const operators = await Model_Operator.getAvailable();
@@ -59,7 +79,10 @@ router.get('/available', verifyToken, async (req, res) => {
   }
 });
 
-// GET - Mendapatkan operator berdasarkan ID (semua user bisa akses)
+/**
+ * GET /operator/:id
+ * Mengambil detail operator berdasarkan ID
+ */
 router.get('/:id', verifyToken, async (req, res) => {
   try {
     const id = req.params.id;
@@ -86,7 +109,11 @@ router.get('/:id', verifyToken, async (req, res) => {
   }
 });
 
-// POST - Menambahkan operator baru (admin only)
+/**
+ * POST /operator
+ * Membuat data operator baru
+ * Body harus berisi: nama, no_hp, alamat, status
+ */
 router.post('/store', verifyToken, adminOnly, upload.single('foto'), async (req, res) => {
   try {
     const { nama_operator, no_hp, status } = req.body;
@@ -111,7 +138,11 @@ router.post('/store', verifyToken, adminOnly, upload.single('foto'), async (req,
   }
 });
 
-// PATCH - Mengupdate operator (admin only)
+/**
+ * PUT /operator/:id
+ * Mengupdate data operator
+ * Body berisi field yang akan diupdate
+ */
 router.patch('/update/:id', verifyToken, adminOnly, async (req, res) => {
   try {
     const id = req.params.id;
@@ -141,7 +172,11 @@ router.patch('/update/:id', verifyToken, adminOnly, async (req, res) => {
   }
 });
 
-// PATCH - Update status operator (admin only)
+/**
+ * PATCH /operator/status/:id
+ * Mengupdate status operator
+ * Body berisi status baru
+ */
 router.patch('/status/:id', verifyToken, adminOnly, async (req, res) => {
   try {
     const id = req.params.id;

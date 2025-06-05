@@ -1,7 +1,20 @@
+/**
+ * Routes Log Transaksi
+ * Menangani semua endpoint terkait log transaksi, termasuk:
+ * - Pencatatan aktivitas transaksi
+ * - Pengambilan riwayat transaksi
+ * - Pelacakan perubahan status
+ * - Analisis aktivitas sistem
+ */
+
 const express = require('express');
 const Model_LogTransaksi = require('../model/Model_LogTransaksi');
 const router = express.Router();
 const { verifyToken, adminOnly, userOnly } = require('../middleware/authMiddleware');
+const Model_Pesanan = require('../model/Model_Pesanan');
+
+// Middleware untuk memastikan user sudah login dan admin
+router.use(verifyToken, adminOnly);
 
 // GET - Mendapatkan semua log transaksi
 router.get('/', async (req, res) => {

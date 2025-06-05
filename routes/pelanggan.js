@@ -1,9 +1,27 @@
+/**
+ * Routes Pelanggan
+ * Menangani semua endpoint terkait data pelanggan, termasuk:
+ * - Pengelolaan data pelanggan
+ * - Pencatatan informasi kontak
+ * - Riwayat pemesanan pelanggan
+ * - Pengelolaan profil pelanggan
+ */
+
 const express = require('express');
 const Model_Pelanggan = require('../model/Model_Pelanggan');
 const router = express.Router();
+const { verifyToken, adminOnly } = require('../middleware/authMiddleware');
+const Model_Pesanan = require('../model/Model_Pesanan');
+const { createLogTransaksi } = require('../helpers/logHelper');
 //done
-// GET - Mendapatkan semua pelanggan
-router.get('/', async (req, res) => {
+// Middleware untuk memastikan user sudah login
+router.use(verifyToken);
+
+/**
+ * GET /pelanggan
+ * Mengambil semua data pelanggan (admin only)
+ */
+router.get('/', adminOnly, async (req, res) => {
   try {
     const pelanggan = await Model_Pelanggan.getAll();
     res.status(200).json({
@@ -20,7 +38,11 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET - Mencari pelanggan berdasarkan keyword
+/**
+ * GET /pelanggan/search
+ * Mencari data pelanggan berdasarkan keyword
+ * Query params: keyword
+ */
 router.get('/search', async (req, res) => {
   try {
     const { keyword } = req.query;
@@ -47,77 +69,10 @@ router.get('/search', async (req, res) => {
   }
 });
 
-// GET - Mendapatkan pelanggan berdasarkan email
-router.get('/email/:email', async (req, res) => {
-  try {
-    const email = req.params.email;
-    
-    if (!email) {
-      return res.status(400).json({
-        status: false,
-        message: 'Email diperlukan'
-      });
-    }
-    
-    const pelanggan = await Model_Pelanggan.getByEmail(email);
-    
-    if (!pelanggan || pelanggan.length === 0) {
-      return res.status(404).json({
-        status: false,
-        message: 'Pelanggan tidak ditemukan'
-      });
-    }
-    
-    res.status(200).json({
-      status: true,
-      message: 'Pelanggan berhasil ditemukan',
-      data: pelanggan[0]
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: false,
-      message: 'Gagal mencari pelanggan',
-      error: error.message
-    });
-  }
-});
-
-// GET - Mendapatkan pelanggan berdasarkan nomor HP
-router.get('/phone/:no_hp', async (req, res) => {
-  try {
-    const no_hp = req.params.no_hp;
-    
-    if (!no_hp) {
-      return res.status(400).json({
-        status: false,
-        message: 'Nomor HP diperlukan'
-      });
-    }
-    
-    const pelanggan = await Model_Pelanggan.getByPhone(no_hp);
-    
-    if (!pelanggan || pelanggan.length === 0) {
-      return res.status(404).json({
-        status: false,
-        message: 'Pelanggan tidak ditemukan'
-      });
-    }
-    
-    res.status(200).json({
-      status: true,
-      message: 'Pelanggan berhasil ditemukan',
-      data: pelanggan[0]
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: false,
-      message: 'Gagal mencari pelanggan',
-      error: error.message
-    });
-  }
-});
-
-// GET - Mendapatkan pelanggan berdasarkan ID
+/**
+ * GET /pelanggan/:id
+ * Mengambil detail pelanggan berdasarkan ID
+ */
 router.get('/:id', async (req, res) => {
   try {
     const id = req.params.id;
@@ -144,7 +99,11 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST - Menambahkan pelanggan baru
+/**
+ * POST /pelanggan
+ * Membuat data pelanggan baru
+ * Body harus berisi: nama, email, no_hp, alamat
+ */
 router.post('/store', async (req, res) => {
   try {
     const { nama, email, no_hp, alamat } = req.body;
@@ -179,7 +138,11 @@ router.post('/store', async (req, res) => {
   }
 });
 
-// PATCH - Mengupdate pelanggan
+/**
+ * PUT /pelanggan/:id
+ * Mengupdate data pelanggan
+ * Body berisi field yang akan diupdate
+ */
 router.patch('/update/:id', async (req, res) => {
   try {
     const id = req.params.id;
@@ -215,8 +178,11 @@ router.patch('/update/:id', async (req, res) => {
   }
 });
 
-// DELETE - Menghapus pelanggan
-router.delete('/delete/:id', async (req, res) => {
+/**
+ * DELETE /pelanggan/:id
+ * Menghapus data pelanggan (admin only)
+ */
+router.delete('/delete/:id', adminOnly, async (req, res) => {
   try {
     const id = req.params.id;
     
@@ -238,6 +204,36 @@ router.delete('/delete/:id', async (req, res) => {
     res.status(500).json({
       status: false,
       message: 'Gagal menghapus pelanggan',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /pelanggan/:id/riwayat
+ * Mengambil riwayat pemesanan pelanggan
+ */
+router.get('/:id/riwayat', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const riwayatPesanan = await Model_Pesanan.getByPelanggan(id);
+    
+    if (!riwayatPesanan || riwayatPesanan.length === 0) {
+      return res.status(404).json({
+        status: false,
+        message: 'Riwayat pemesanan pelanggan tidak ditemukan'
+      });
+    }
+    
+    res.status(200).json({
+      status: true,
+      message: 'Riwayat pemesanan pelanggan berhasil diambil',
+      data: riwayatPesanan
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: false,
+      message: 'Gagal mengambil riwayat pemesanan pelanggan',
       error: error.message
     });
   }

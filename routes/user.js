@@ -1,10 +1,83 @@
+/**
+ * Routes User
+ * Menangani semua endpoint terkait pengguna sistem, termasuk:
+ * - Registrasi user baru
+ * - Login dan autentikasi
+ * - Pengelolaan profil user
+ * - Pengelolaan hak akses
+ */
+
 const express = require('express');
 const router = express.Router();
-const { verifyToken, userOnly, checkUserOwnership } = require('../middleware/authMiddleware');
+const { verifyToken, userOnly, checkUserOwnership, adminOnly } = require('../middleware/authMiddleware');
 const db = require('../config/databases');
+const Model_Users = require('../model/Model_Users');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const { createLogTransaksi } = require('../helpers/logHelper');
 
 // Middleware untuk semua route user
 router.use(verifyToken, userOnly);
+
+/**
+ * GET /user
+ * Mengambil semua data user (admin only)
+ */
+router.get('/', adminOnly, async (req, res) => {
+    // ... existing code ...
+});
+
+/**
+ * POST /user/register
+ * Registrasi user baru
+ * Body harus berisi: username, email, password, role
+ */
+router.post('/register', async (req, res) => {
+    // ... existing code ...
+});
+
+/**
+ * POST /user/login
+ * Login user
+ * Body harus berisi: email, password
+ */
+router.post('/login', async (req, res) => {
+    // ... existing code ...
+});
+
+/**
+ * GET /user/:id
+ * Mengambil detail user berdasarkan ID
+ */
+router.get('/:id', async (req, res) => {
+    // ... existing code ...
+});
+
+/**
+ * PUT /user/:id
+ * Mengupdate data user
+ * Body berisi field yang akan diupdate
+ */
+router.put('/:id', async (req, res) => {
+    // ... existing code ...
+});
+
+/**
+ * DELETE /user/:id
+ * Menghapus user (admin only)
+ */
+router.delete('/:id', adminOnly, async (req, res) => {
+    // ... existing code ...
+});
+
+/**
+ * PUT /user/:id/role
+ * Mengupdate role user (admin only)
+ * Body harus berisi: role
+ */
+router.put('/:id/role', adminOnly, async (req, res) => {
+    // ... existing code ...
+});
 
 // Mengelola Akun
 router.get('/profile', async (req, res) => {

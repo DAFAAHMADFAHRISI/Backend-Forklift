@@ -1,3 +1,12 @@
+/**
+ * Routes Unit Forklift
+ * Menangani semua endpoint terkait unit forklift, termasuk:
+ * - Pengelolaan data unit
+ * - Pengecekan ketersediaan unit
+ * - Pengambilan data unit
+ * - Pengelolaan status unit
+ */
+
 const express = require('express');
 const Model_Unit = require('../model/Model_Unit');
 const router = express.Router();
@@ -5,6 +14,8 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { verifyToken, adminOnly, userOnly } = require('../middleware/authMiddleware');
+const Model_Pesanan = require('../model/Model_Pesanan');
+const { createLogTransaksi } = require('../helpers/logHelper');
 
 // Konfigurasi upload gambar
 const storage = multer.diskStorage({
@@ -26,7 +37,13 @@ const upload = multer({
   limits: { fileSize: 2 * 1024 * 1024 } // 2MB
 });
 
-// Public route - Semua orang bisa lihat unit yang tersedia
+// Middleware untuk memastikan user sudah login
+router.use(verifyToken);
+
+/**
+ * GET /unit
+ * Mengambil semua data unit forklift
+ */
 router.get('/', async (req, res) => {
     try {
         const units = await Model_Unit.getAll();
@@ -43,8 +60,11 @@ router.get('/', async (req, res) => {
     }
 });
 
-// GET - Mendapatkan unit yang tersedia (untuk user)
-router.get('/available', async (req, res) => {
+/**
+ * GET /unit/tersedia
+ * Mengambil daftar unit yang tersedia (tidak sedang disewa)
+ */
+router.get('/tersedia', async (req, res) => {
   try {
     const units = await Model_Unit.getAvailable();
     res.status(200).json({
@@ -61,7 +81,10 @@ router.get('/available', async (req, res) => {
   }
 });
 
-// GET - Mendapatkan unit berdasarkan ID
+/**
+ * GET /unit/:id
+ * Mengambil detail unit berdasarkan ID
+ */
 router.get('/:id', async (req, res) => {
   try {
     const id = req.params.id;
@@ -88,8 +111,12 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Protected route - Hanya admin yang bisa tambah unit
-router.post('/store', verifyToken, adminOnly, upload.single('gambar'), async (req, res) => {
+/**
+ * POST /unit
+ * Membuat data unit baru (admin only)
+ * Body harus berisi: nama_unit, jenis, kapasitas, status
+ */
+router.post('/store', adminOnly, upload.single('gambar'), async (req, res) => {
     try {
         // Validasi harga_per_jam
         if (req.body.harga_per_jam) {
@@ -132,8 +159,12 @@ router.post('/store', verifyToken, adminOnly, upload.single('gambar'), async (re
     }
 });
 
-// Protected route - Hanya admin yang bisa update unit
-router.put('/:id', verifyToken, adminOnly, async (req, res) => {
+/**
+ * PUT /unit/:id
+ * Mengupdate data unit (admin only)
+ * Body berisi field yang akan diupdate
+ */
+router.put('/:id', adminOnly, async (req, res) => {
     try {
         // Validasi harga_per_jam
         if (req.body.harga_per_jam) {
@@ -182,8 +213,12 @@ router.put('/:id', verifyToken, adminOnly, async (req, res) => {
     }
 });
 
-// Protected route - Hanya admin yang bisa hapus unit
-router.delete('/:id', verifyToken, adminOnly, async (req, res) => {
+/**
+ * DELETE /unit/:id
+ * Menghapus data unit (admin only)
+ * Hanya bisa dilakukan jika unit tidak sedang disewa
+ */
+router.delete('/:id', adminOnly, async (req, res) => {
     try {
         // Cek apakah unit sedang disewa
         const unit = await Model_Unit.getId(req.params.id);
@@ -209,7 +244,7 @@ router.delete('/:id', verifyToken, adminOnly, async (req, res) => {
 });
 
 // Edit unit (update data dan gambar)
-router.put('/edit/:id', verifyToken, adminOnly, upload.single('gambar'), async (req, res) => {
+router.put('/edit/:id', adminOnly, upload.single('gambar'), async (req, res) => {
     try {
         // Validasi harga_per_jam
         if (req.body.harga_per_jam) {
@@ -261,7 +296,7 @@ router.put('/edit/:id', verifyToken, adminOnly, upload.single('gambar'), async (
 });
 
 // PATCH - Update status unit
-router.patch('/status/:id', verifyToken, adminOnly, async (req, res) => {
+router.patch('/status/:id', adminOnly, async (req, res) => {
     try {
         const { status } = req.body;
         const validStatus = ['tersedia', 'disewa'];
@@ -283,6 +318,15 @@ router.patch('/status/:id', verifyToken, adminOnly, async (req, res) => {
             message: error.message
         });
     }
+});
+
+/**
+ * GET /unit/cek-ketersediaan
+ * Mengecek ketersediaan unit pada rentang waktu tertentu
+ * Query params: tanggal_mulai, tanggal_selesai
+ */
+router.get('/cek-ketersediaan', async (req, res) => {
+    // ... existing code ...
 });
 
 module.exports = router; 

@@ -1,7 +1,21 @@
+/**
+ * Routes Feedback
+ * Menangani semua endpoint terkait feedback dan rating, termasuk:
+ * - Pembuatan feedback baru
+ * - Pengambilan data feedback
+ * - Pengelolaan rating
+ * - Analisis feedback
+ */
+
 const express = require('express');
 const Model_Feedback = require('../model/Model_Feedback');
 const router = express.Router();
 const { verifyToken, userOnly, adminOnly } = require('../middleware/authMiddleware');
+const Model_Pesanan = require('../model/Model_Pesanan');
+const { createLogTransaksi } = require('../helpers/logHelper');
+
+// Middleware untuk memastikan user sudah login
+router.use(verifyToken);
 
 // GET - Mendapatkan semua feedback
 router.get('/', async (req, res) => {
