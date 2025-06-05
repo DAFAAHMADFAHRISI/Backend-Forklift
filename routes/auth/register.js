@@ -15,8 +15,9 @@ router.get('/', (req, res) => {
 router.post('/', async (req, res) => {
     const { nama, email, username, password, no_hp, alamat } = req.body;
     
-    // Cek apakah request berasal dari Postman/API client
-    const isApiRequest = req.get('User-Agent')?.includes('Postman') || 
+    // Cek apakah request berasal dari endpoint API (case-insensitive, agar /api/auth/register selalu JSON)
+    const isApiRequest = req.originalUrl.toLowerCase().includes('/api/auth/register') ||
+                        req.get('User-Agent')?.includes('Postman') || 
                         req.get('Accept')?.includes('application/json') ||
                         req.xhr;
     

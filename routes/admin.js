@@ -4,18 +4,20 @@ const { verifyToken, adminOnly } = require('../middleware/authMiddleware');
 const db = require('../config/databases');
 const Model_Pemesanan = require('../model/Model_Pemesanan');
 const { createLogTransaksi } = require('../helpers/logHelper');
+const Model_Unit = require('../model/Model_Unit');
+const Model_Pesanan = require('../model/Model_Pesanan');
 
 // Middleware untuk semua route admin
 router.use(verifyToken, adminOnly);
 
 // Mengelola User
-router.get('/users', async (req, res) => {
-    try {
-        const [users] = await db.query('SELECT id_user, nama, email, no_hp, alamat, username, role FROM user');
-        res.json({ status: true, data: users });
-    } catch (error) {
-        res.status(500).json({ status: false, message: error.message });
-    }
+router.get('/users', (req, res) => {
+    db.query('SELECT id_user, nama, email, no_hp, alamat, username, role FROM user WHERE role = "user"', (error, results) => {
+        if (error) {
+            return res.status(500).json({ status: false, message: error.message });
+        }
+        res.json({ status: true, data: results });
+    });
 });
 
 router.post('/users', async (req, res) => {
@@ -169,7 +171,23 @@ router.put('/pesanan/:id/status', async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
     try {
-        await db.query('UPDATE pemesanan SET status = ? WHERE id_pemesanan = ?', [status, id]);
+        await Model_Pesanan.updateStatus(id, status);
+
+        // Jika status selesai, update status unit menjadi tersedia
+        if (status === 'selesai') {
+            const pesanan = await Model_Pesanan.getId(id);
+            console.log('DEBUG: Data pesanan untuk update status unit:', pesanan);
+            if (pesanan && pesanan.id_unit) {
+                try {
+                    const result = await Model_Unit.updateStatus(pesanan.id_unit, 'tersedia');
+                    console.log(`DEBUG: Update status unit ${pesanan.id_unit} ke 'tersedia', hasil:`, result);
+                } catch (err) {
+                    console.error('ERROR: Gagal update status unit:', err);
+                }
+            } else {
+                console.warn('WARNING: id_unit tidak ditemukan pada pesanan, tidak bisa update status unit!');
+            }
+        }
         res.json({ status: true, message: 'Status pemesanan berhasil diupdate' });
     } catch (error) {
         res.status(500).json({ status: false, message: error.message });
