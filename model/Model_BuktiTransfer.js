@@ -1,6 +1,20 @@
+/**
+ * Model_BuktiTransfer Class
+ * Kelas ini menangani semua operasi database terkait bukti transfer pembayaran, termasuk:
+ * - Pembuatan dan pengelolaan data bukti transfer
+ * - Verifikasi bukti transfer
+ * - Pelacakan status verifikasi
+ * - Operasi CRUD untuk data bukti transfer
+ */
+
 const connection = require("../config/databases");
 
 class Model_BuktiTransfer {
+  /**
+   * Mengambil semua data bukti transfer dari database
+   * @returns {Promise} Mengembalikan promise yang berisi array data bukti transfer
+   * Data diurutkan berdasarkan ID terbaru
+   */
   static async getAll() {
     return new Promise((resolve, reject) => {
       connection.query(`
@@ -56,6 +70,11 @@ class Model_BuktiTransfer {
     });
   }
 
+  /**
+   * Membuat data bukti transfer baru
+   * @param {Object} data - Objek data bukti transfer yang berisi informasi bukti
+   * @returns {Promise} Mengembalikan promise yang berisi hasil insert
+   */
   static async Store(data) {
     return new Promise((resolve, reject) => {
       connection.query('INSERT INTO bukti_transfer SET ?', data, (err, result) => {
@@ -68,6 +87,12 @@ class Model_BuktiTransfer {
     });
   }
 
+  /**
+   * Mengupdate data bukti transfer yang sudah ada
+   * @param {number} id - ID bukti transfer yang akan diupdate
+   * @param {Object} data - Objek yang berisi data bukti transfer yang akan diupdate
+   * @returns {Promise} Mengembalikan promise yang berisi hasil update
+   */
   static async Update(id, data) {
     return new Promise((resolve, reject) => {
       connection.query('UPDATE bukti_transfer SET ? WHERE id_bukti = ?', [data, id], (err, result) => {
@@ -80,6 +105,11 @@ class Model_BuktiTransfer {
     });
   }
 
+  /**
+   * Menghapus data bukti transfer
+   * @param {number} id - ID bukti transfer yang akan dihapus
+   * @returns {Promise} Mengembalikan promise yang berisi hasil delete
+   */
   static async Delete(id) {
     return new Promise((resolve, reject) => {
       connection.query('DELETE FROM bukti_transfer WHERE id_bukti = ?', [id], (err, result) => {

@@ -1,6 +1,20 @@
+/**
+ * Model_Transaksi Class
+ * Kelas ini menangani semua operasi database terkait transaksi, termasuk:
+ * - Pembuatan dan pengelolaan data transaksi
+ * - Pencatatan detail pembayaran
+ * - Pelacakan status transaksi
+ * - Operasi CRUD untuk data transaksi
+ */
+
 const connection = require("../config/databases");
 
 class Model_Transaksi {
+  /**
+   * Mengambil semua data transaksi dari database
+   * @returns {Promise} Mengembalikan promise yang berisi array data transaksi
+   * Data diurutkan berdasarkan ID terbaru
+   */
   static getAll() {
     return new Promise((resolve, reject) => {
       connection.query(
@@ -48,6 +62,11 @@ class Model_Transaksi {
     });
   }
 
+  /**
+   * Membuat data transaksi baru
+   * @param {Object} data - Objek data transaksi yang berisi informasi transaksi
+   * @returns {Promise} Mengembalikan promise yang berisi hasil insert
+   */
   static async store(Data) {
     return new Promise((resolve, reject) => {
       connection.query("INSERT INTO transaksi SET ?", Data, (err, result) => {
@@ -57,6 +76,11 @@ class Model_Transaksi {
     });
   }
 
+  /**
+   * Mengambil data transaksi berdasarkan ID
+   * @param {number} id - ID transaksi yang dicari
+   * @returns {Promise} Mengembalikan promise yang berisi data transaksi
+   */
   static async getId(id) {
     return new Promise((resolve, reject) => {
       connection.query(
@@ -74,6 +98,12 @@ class Model_Transaksi {
     });
   }
 
+  /**
+   * Mengupdate data transaksi yang sudah ada
+   * @param {number} id - ID transaksi yang akan diupdate
+   * @param {Object} data - Objek yang berisi data transaksi yang akan diupdate
+   * @returns {Promise} Mengembalikan promise yang berisi hasil update
+   */
   static async update(id, Data) {
     return new Promise((resolve, reject) => {
       connection.query(
@@ -87,6 +117,12 @@ class Model_Transaksi {
     });
   }
 
+  /**
+   * Mengupdate status transaksi
+   * @param {number} id - ID transaksi
+   * @param {string} status - Status transaksi baru
+   * @returns {Promise} Mengembalikan promise yang berisi hasil update
+   */
   static async updateStatus(id, status) {
     return new Promise((resolve, reject) => {
       connection.query(
@@ -100,6 +136,11 @@ class Model_Transaksi {
     });
   }
 
+  /**
+   * Menghapus data transaksi
+   * @param {number} id - ID transaksi yang akan dihapus
+   * @returns {Promise} Mengembalikan promise yang berisi hasil delete
+   */
   static async delete(id) {
     return new Promise((resolve, reject) => {
       connection.query(
@@ -111,6 +152,15 @@ class Model_Transaksi {
         }
       );
     });
+  }
+
+  /**
+   * Mengambil riwayat transaksi pelanggan
+   * @param {number} id_pelanggan - ID pelanggan
+   * @returns {Promise} Mengembalikan promise yang berisi array riwayat transaksi
+   */
+  static async getRiwayatTransaksi(id_pelanggan) {
+    // ... existing code ...
   }
 }
 

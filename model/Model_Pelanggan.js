@@ -1,6 +1,20 @@
+/**
+ * Model_Pelanggan Class
+ * Kelas ini menangani semua operasi database terkait data pelanggan, termasuk:
+ * - Pembuatan dan pengelolaan data pelanggan
+ * - Pencatatan informasi kontak pelanggan
+ * - Pelacakan riwayat pemesanan pelanggan
+ * - Operasi CRUD untuk data pelanggan
+ */
+
 const connection = require("../config/databases");
 
 class Model_Pelanggan {
+  /**
+   * Mengambil semua data pelanggan dari database
+   * @returns {Promise} Mengembalikan promise yang berisi array data pelanggan
+   * Data diurutkan berdasarkan ID terbaru
+   */
   static getAll() {
     return new Promise((resolve, reject) => {
       connection.query(
@@ -13,6 +27,11 @@ class Model_Pelanggan {
     });
   }
 
+  /**
+   * Membuat data pelanggan baru
+   * @param {Object} data - Objek data pelanggan yang berisi informasi pelanggan
+   * @returns {Promise} Mengembalikan promise yang berisi hasil insert
+   */
   static async store(Data) {
     return new Promise((resolve, reject) => {
       connection.query("INSERT INTO pelanggan SET ?", Data, (err, result) => {
@@ -22,6 +41,11 @@ class Model_Pelanggan {
     });
   }
 
+  /**
+   * Mengambil data pelanggan berdasarkan ID
+   * @param {number} id - ID pelanggan yang dicari
+   * @returns {Promise} Mengembalikan promise yang berisi data pelanggan
+   */
   static async getId(id) {
     return new Promise((resolve, reject) => {
       connection.query(
@@ -75,6 +99,12 @@ class Model_Pelanggan {
     });
   }
 
+  /**
+   * Mengupdate data pelanggan yang sudah ada
+   * @param {number} id - ID pelanggan yang akan diupdate
+   * @param {Object} data - Objek yang berisi data pelanggan yang akan diupdate
+   * @returns {Promise} Mengembalikan promise yang berisi hasil update
+   */
   static async update(id, Data) {
     return new Promise((resolve, reject) => {
       connection.query(
@@ -88,6 +118,11 @@ class Model_Pelanggan {
     });
   }
 
+  /**
+   * Menghapus data pelanggan
+   * @param {number} id - ID pelanggan yang akan dihapus
+   * @returns {Promise} Mengembalikan promise yang berisi hasil delete
+   */
   static async delete(id) {
     return new Promise((resolve, reject) => {
       connection.query(
@@ -99,6 +134,15 @@ class Model_Pelanggan {
         }
       );
     });
+  }
+
+  /**
+   * Mengambil riwayat pemesanan pelanggan
+   * @param {number} id_pelanggan - ID pelanggan
+   * @returns {Promise} Mengembalikan promise yang berisi array riwayat pemesanan
+   */
+  static async getRiwayatPemesanan(id_pelanggan) {
+    // ... existing code ...
   }
 }
 

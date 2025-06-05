@@ -1,3 +1,9 @@
+/**
+ * Admin Routes Module
+ * This module handles all administrative operations including user management,
+ * unit management, operator management, and transaction oversight.
+ */
+
 const express = require('express');
 const router = express.Router();
 const { verifyToken, adminOnly } = require('../middleware/authMiddleware');
@@ -7,10 +13,15 @@ const { createLogTransaksi } = require('../helpers/logHelper');
 const Model_Unit = require('../model/Model_Unit');
 const Model_Pesanan = require('../model/Model_Pesanan');
 
-// Middleware untuk semua route admin
+// Middleware untuk semua route admin - memastikan hanya admin yang bisa mengakses
 router.use(verifyToken, adminOnly);
 
-// Mengelola User
+/**
+ * User Management Routes
+ * Handles CRUD operations for user accounts
+ */
+
+// GET /admin/users - Mendapatkan daftar semua user (non-admin)
 router.get('/users', (req, res) => {
     db.query('SELECT id_user, nama, email, no_hp, alamat, username, role FROM user WHERE role = "user"', (error, results) => {
         if (error) {
@@ -20,6 +31,7 @@ router.get('/users', (req, res) => {
     });
 });
 
+// POST /admin/users - Menambahkan user baru
 router.post('/users', async (req, res) => {
     const { nama, email, no_hp, alamat, username, password, role } = req.body;
     try {
@@ -33,6 +45,7 @@ router.post('/users', async (req, res) => {
     }
 });
 
+// PUT /admin/users/:id - Mengupdate data user
 router.put('/users/:id', async (req, res) => {
     const { id } = req.params;
     const { nama, email, no_hp, alamat, username, role } = req.body;
@@ -47,6 +60,7 @@ router.put('/users/:id', async (req, res) => {
     }
 });
 
+// DELETE /admin/users/:id - Menghapus user
 router.delete('/users/:id', async (req, res) => {
     const { id } = req.params;
     try {
@@ -57,7 +71,12 @@ router.delete('/users/:id', async (req, res) => {
     }
 });
 
-// Mengelola Unit Forklift
+/**
+ * Unit Forklift Management Routes
+ * Handles CRUD operations for forklift units
+ */
+
+// GET /admin/units - Mendapatkan daftar semua unit forklift
 router.get('/units', async (req, res) => {
     try {
         const [units] = await db.query('SELECT * FROM unit_forklift');
@@ -67,6 +86,7 @@ router.get('/units', async (req, res) => {
     }
 });
 
+// POST /admin/units - Menambahkan unit forklift baru
 router.post('/units', async (req, res) => {
     const { nama_unit, kapasitas, gambar, harga_per_jam } = req.body;
     try {
@@ -80,6 +100,7 @@ router.post('/units', async (req, res) => {
     }
 });
 
+// PUT /admin/units/:id - Mengupdate data unit forklift
 router.put('/units/:id', async (req, res) => {
     const { id } = req.params;
     const { nama_unit, kapasitas, gambar, status, harga_per_jam } = req.body;
@@ -94,6 +115,7 @@ router.put('/units/:id', async (req, res) => {
     }
 });
 
+// DELETE /admin/units/:id - Menghapus unit forklift
 router.delete('/units/:id', async (req, res) => {
     const { id } = req.params;
     try {
@@ -104,7 +126,12 @@ router.delete('/units/:id', async (req, res) => {
     }
 });
 
-// Mengelola Operator
+/**
+ * Operator Management Routes
+ * Handles CRUD operations for forklift operators
+ */
+
+// GET /admin/operators - Mendapatkan daftar semua operator
 router.get('/operators', async (req, res) => {
     try {
         const [operators] = await db.query('SELECT * FROM operator');
@@ -114,6 +141,7 @@ router.get('/operators', async (req, res) => {
     }
 });
 
+// POST /admin/operators - Menambahkan operator baru
 router.post('/operators', async (req, res) => {
     const { nama_operator, no_hp } = req.body;
     try {
@@ -127,6 +155,7 @@ router.post('/operators', async (req, res) => {
     }
 });
 
+// PUT /admin/operators/:id - Mengupdate data operator
 router.put('/operators/:id', async (req, res) => {
     const { id } = req.params;
     const { nama_operator, no_hp, status } = req.body;
@@ -141,6 +170,7 @@ router.put('/operators/:id', async (req, res) => {
     }
 });
 
+// DELETE /admin/operators/:id - Menghapus operator
 router.delete('/operators/:id', async (req, res) => {
     const { id } = req.params;
     try {
@@ -151,7 +181,12 @@ router.delete('/operators/:id', async (req, res) => {
     }
 });
 
-// Mengelola Pemesanan
+/**
+ * Order Management Routes
+ * Handles order tracking and status updates
+ */
+
+// GET /admin/pesanan - Mendapatkan daftar semua pesanan dengan detail lengkap
 router.get('/pesanan', async (req, res) => {
     try {
         const [pesanan] = await db.query(`
@@ -167,6 +202,8 @@ router.get('/pesanan', async (req, res) => {
     }
 });
 
+// PUT /admin/pesanan/:id/status - Mengupdate status pesanan
+// Jika status 'selesai', unit akan diupdate menjadi 'tersedia'
 router.put('/pesanan/:id/status', async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
@@ -194,7 +231,12 @@ router.put('/pesanan/:id/status', async (req, res) => {
     }
 });
 
-// Mengelola Pembayaran
+/**
+ * Payment Management Routes
+ * Handles payment tracking and verification
+ */
+
+// GET /admin/pembayaran - Mendapatkan daftar semua pembayaran
 router.get('/pembayaran', async (req, res) => {
     try {
         const [pembayaran] = await db.query(`
@@ -209,7 +251,12 @@ router.get('/pembayaran', async (req, res) => {
     }
 });
 
-// Mengelola Bukti Transfer
+/**
+ * Transfer Proof Management Routes
+ * Handles verification of payment transfer proofs
+ */
+
+// GET /admin/bukti-transfer - Mendapatkan daftar semua bukti transfer
 router.get('/bukti-transfer', async (req, res) => {
     try {
         const [bukti] = await db.query(`
@@ -225,6 +272,7 @@ router.get('/bukti-transfer', async (req, res) => {
     }
 });
 
+// PUT /admin/bukti-transfer/:id/verifikasi - Memverifikasi bukti transfer
 router.put('/bukti-transfer/:id/verifikasi', async (req, res) => {
     const { id } = req.params;
     const { status_verifikasi } = req.body;
@@ -239,7 +287,12 @@ router.put('/bukti-transfer/:id/verifikasi', async (req, res) => {
     }
 });
 
-// Mengelola Log Transaksi
+/**
+ * Transaction Log Routes
+ * Handles viewing of transaction history
+ */
+
+// GET /admin/log-transaksi - Mendapatkan log transaksi
 router.get('/log-transaksi', async (req, res) => {
     try {
         const [logs] = await db.query(`

@@ -1,6 +1,20 @@
+/**
+ * Model_Pembayaran Class
+ * Kelas ini menangani semua operasi database terkait pembayaran, termasuk:
+ * - Pembuatan dan pengelolaan data pembayaran
+ * - Pencatatan detail pembayaran
+ * - Pelacakan status pembayaran
+ * - Operasi CRUD untuk data pembayaran
+ */
+
 const connection = require("../config/databases");
 
 class Model_Pembayaran {
+  /**
+   * Mengambil semua data pembayaran dari database
+   * @returns {Promise} Mengembalikan promise yang berisi array data pembayaran
+   * Data diurutkan berdasarkan ID terbaru
+   */
   static async getAll() {
     return new Promise((resolve, reject) => {
       connection.query(`
@@ -53,6 +67,11 @@ class Model_Pembayaran {
     });
   }
 
+  /**
+   * Membuat data pembayaran baru
+   * @param {Object} data - Objek data pembayaran yang berisi informasi pembayaran
+   * @returns {Promise} Mengembalikan promise yang berisi hasil insert
+   */
   static async Store(data) {
     return new Promise((resolve, reject) => {
       connection.query('INSERT INTO pembayaran SET ?', data, (err, result) => {
@@ -77,6 +96,12 @@ class Model_Pembayaran {
     });
   }
 
+  /**
+   * Mengupdate data pembayaran yang sudah ada
+   * @param {number} id - ID pembayaran yang akan diupdate
+   * @param {Object} data - Objek yang berisi data pembayaran yang akan diupdate
+   * @returns {Promise} Mengembalikan promise yang berisi hasil update
+   */
   static async Update(id, data) {
     return new Promise((resolve, reject) => {
       connection.query('UPDATE pembayaran SET ? WHERE id_pembayaran = ?', [data, id], (err, result) => {
@@ -89,6 +114,11 @@ class Model_Pembayaran {
     });
   }
 
+  /**
+   * Menghapus data pembayaran
+   * @param {number} id - ID pembayaran yang akan dihapus
+   * @returns {Promise} Mengembalikan promise yang berisi hasil delete
+   */
   static async Delete(id) {
     return new Promise((resolve, reject) => {
       connection.query('DELETE FROM pembayaran WHERE id_pembayaran = ?', [id], (err, result) => {
