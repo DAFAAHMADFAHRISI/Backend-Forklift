@@ -12,7 +12,7 @@ const router = express.Router();
 const { verifyToken, userOnly, checkUserOwnership, adminOnly } = require('../middleware/authMiddleware');
 const db = require('../config/databases');
 const Model_Users = require('../model/Model_Users');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { createLogTransaksi } = require('../helpers/logHelper');
 
