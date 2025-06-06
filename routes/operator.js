@@ -35,7 +35,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 // Middleware untuk memastikan user sudah login dan admin
-router.use(verifyToken, adminOnly);
+router.use(verifyToken);
 
 /**
  * GET /operator
@@ -62,7 +62,7 @@ router.get('/', async (req, res) => {
  * GET /operator/tersedia
  * Mengambil daftar operator yang tersedia (tidak sedang bertugas)
  */
-router.get('/available', verifyToken, async (req, res) => {
+router.get('/available', async (req, res) => {
   try {
     const operators = await Model_Operator.getAvailable();
     res.status(200).json({
@@ -83,7 +83,7 @@ router.get('/available', verifyToken, async (req, res) => {
  * GET /operator/:id
  * Mengambil detail operator berdasarkan ID
  */
-router.get('/:id', verifyToken, async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const id = req.params.id;
     const operator = await Model_Operator.getId(id);
@@ -98,7 +98,7 @@ router.get('/:id', verifyToken, async (req, res) => {
     res.status(200).json({
       status: true,
       message: 'Detail operator berhasil diambil',
-      data: operator // <-- PENTING!
+      data: operator
     });
   } catch (error) {
     res.status(500).json({
