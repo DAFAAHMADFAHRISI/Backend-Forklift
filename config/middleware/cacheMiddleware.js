@@ -1,5 +1,5 @@
 const NodeCache = require('node-cache');
-const cache = new NodeCache({ stdTTL: 5 }); // Cache akan expired dalam 5 detik
+const cache = new NodeCache({ stdTTL: 5 }); 
 
 const cacheMiddleware = (req, res, next) => {
     const cacheKey = req.originalUrl;
